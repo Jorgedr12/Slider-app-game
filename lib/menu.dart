@@ -1,8 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
-/// Pantalla principal del menú estilo Initial D Arcade.
-class Menu extends StatelessWidget {
+class Menu extends StatefulWidget {
   const Menu({super.key});
+
+  @override
+  State<Menu> createState() => _MenuState();
+}
+
+class _MenuState extends State<Menu> {
+  late AudioPlayer _audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+    _playBackgroundMusic();
+  }
+
+  Future<void> _playBackgroundMusic() async {
+    try {
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop); 
+      await _audioPlayer.setVolume(0.4); 
+      await _audioPlayer.play(AssetSource('music/menu_theme.m4a'));
+    } catch (e) {
+      debugPrint('Error al reproducir música: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); 
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +42,6 @@ class Menu extends StatelessWidget {
         height: double.infinity,
         child: Stack(
           children: [
-            // Fondo
             Positioned.fill(
               child: Image.asset(
                 'assets/background/menu_bg.png',
@@ -20,20 +49,17 @@ class Menu extends StatelessWidget {
               ),
             ),
 
-            // Overlay oscuro
             Positioned.fill(
               child: Container(
                 color: Colors.black.withOpacity(0.25),
               ),
             ),
 
-            // Contenido centrado
             Center(
               child: Column(
                 children: [
                   const SizedBox(height: 10),
 
-                  // Logo grande arriba
                   Image.asset(
                     'assets/logo/game_logo.png',
                     height: 450,
@@ -42,15 +68,16 @@ class Menu extends StatelessWidget {
 
                   const Spacer(),
 
-                  // Menú estilo pixel arcade
                   Column(
                     children: [
                       _menuText('PLAY', selected: true, onTap: () {
+                        _audioPlayer.stop(); // Detener música al salir
                         Navigator.pushNamed(context, '/game');
                       }),
 
                       const SizedBox(height: 1),
                       _menuText('SHOP', onTap: () {
+                        _audioPlayer.stop();
                         Navigator.pushNamed(context, '/shop');
                       }),
                       
@@ -59,11 +86,13 @@ class Menu extends StatelessWidget {
 
                       const SizedBox(height: 1),
                       _menuText('SETTINGS', onTap: () {
+                        _audioPlayer.stop();
                         Navigator.pushNamed(context, '/settings');
                       }),
 
                       const SizedBox(height: 1),
                       _menuText('CREDITS', onTap: () {
+                        _audioPlayer.stop();
                         Navigator.pushNamed(context, '/credits');
                       }),
                     ],
@@ -71,7 +100,6 @@ class Menu extends StatelessWidget {
 
                   const Spacer(),
 
-                  // Copyright
                   Padding(
                     padding: const EdgeInsets.only(bottom: 15),
                     child: Text(
@@ -104,7 +132,6 @@ class Menu extends StatelessWidget {
           letterSpacing: 1,
           color: selected ? Colors.orangeAccent : Colors.blue[300],
           shadows: [
-            // Outline estilo pixel
             const Shadow(offset: Offset(-1, -1), color: Colors.black),
             const Shadow(offset: Offset(1, -1), color: Colors.black),
             const Shadow(offset: Offset(-1, 1), color: Colors.black),
