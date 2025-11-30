@@ -20,8 +20,8 @@ class _MenuState extends State<Menu> {
 
   Future<void> _playBackgroundMusic() async {
     try {
-      await _audioPlayer.setReleaseMode(ReleaseMode.loop); 
-      await _audioPlayer.setVolume(0.4); 
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer.setVolume(0.4);
       await _audioPlayer.play(AssetSource('music/menu_theme.m4a'));
     } catch (e) {
       debugPrint('Error al reproducir música: $e');
@@ -30,7 +30,7 @@ class _MenuState extends State<Menu> {
 
   @override
   void dispose() {
-    _audioPlayer.dispose(); 
+    // _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -50,9 +50,7 @@ class _MenuState extends State<Menu> {
             ),
 
             Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.25),
-              ),
+              child: Container(color: Colors.black.withOpacity(0.25)),
             ),
 
             Center(
@@ -70,31 +68,46 @@ class _MenuState extends State<Menu> {
 
                   Column(
                     children: [
-                      _menuText('PLAY', selected: true, onTap: () {
-                        _audioPlayer.stop(); // Detener música al salir
-                        Navigator.pushNamed(context, '/game');
-                      }),
-
+                      // _menuText('PLAY', selected: true, onTap: () {
+                      //   _audioPlayer.stop(); // Detener música al salir
+                      //   Navigator.pushNamed(context, '/game');
+                      // }),
+                      _menuText(
+                        'PLAY',
+                        selected: true,
+                        onTap: () {
+                          Navigator.pushNamed(context, '/car_selection');
+                        },
+                      ),
                       const SizedBox(height: 1),
-                      _menuText('SHOP', onTap: () {
-                        _audioPlayer.stop();
-                        Navigator.pushNamed(context, '/shop');
-                      }),
-                      
+                      _menuText(
+                        'SHOP',
+                        onTap: () {
+                          _audioPlayer.stop();
+                          Navigator.pushNamed(context, '/shop');
+                        },
+                      ),
+
                       const SizedBox(height: 1),
                       _menuText('RANKING', onTap: () {}),
 
                       const SizedBox(height: 1),
-                      _menuText('SETTINGS', onTap: () {
-                        _audioPlayer.stop();
-                        Navigator.pushNamed(context, '/settings');
-                      }),
+                      _menuText(
+                        'SETTINGS',
+                        onTap: () {
+                          _audioPlayer.stop();
+                          Navigator.pushNamed(context, '/settings');
+                        },
+                      ),
 
                       const SizedBox(height: 1),
-                      _menuText('CREDITS', onTap: () {
-                        _audioPlayer.stop();
-                        Navigator.pushNamed(context, '/credits');
-                      }),
+                      _menuText(
+                        'CREDITS',
+                        onTap: () {
+                          _audioPlayer.stop();
+                          Navigator.pushNamed(context, '/credits');
+                        },
+                      ),
                     ],
                   ),
 
@@ -110,7 +123,7 @@ class _MenuState extends State<Menu> {
                         color: Colors.white.withOpacity(0.8),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -120,8 +133,11 @@ class _MenuState extends State<Menu> {
     );
   }
 
-  Widget _menuText(String text,
-      {bool selected = false, required VoidCallback onTap}) {
+  Widget _menuText(
+    String text, {
+    bool selected = false,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Text(
