@@ -63,8 +63,8 @@ class Menu extends StatelessWidget {
                       }),
 
                       const SizedBox(height: 1),
-                      _menuText('INFO', onTap: () {
-                        Navigator.pushNamed(context, '/info');
+                      _menuText('CREDITS', onTap: () {
+                        Navigator.pushNamed(context, '/credits');
                       }),
                     ],
                   ),
