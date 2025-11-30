@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CarData {
   final String name;
@@ -32,13 +33,13 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       driverName: 'TAKUMI FUJIWARA',
     ),
     CarData(
-      name: 'JEEP',
+      name: 'JEEP CHEROKEE',
       carImagePath: 'assets/cars/jeep_select.png',
       driverImagePath: 'assets/characters/pirata_culiacan.png',
       driverName: 'PIRATA DE CULIACÁN',
     ),
     CarData(
-      name: 'BUS',
+      name: 'MICROBUS RUTA 12',
       carImagePath: 'assets/cars/bus_select.png',
       driverImagePath: 'assets/characters/el_vitor.png',
       driverName: 'EL VITOR',
@@ -57,8 +58,18 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     });
   }
 
-  void _selectCar() {
-    Navigator.pushNamed(context, '/game', arguments: _cars[_currentCarIndex]);
+  Future<void> _selectCar() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentCar = _cars[_currentCarIndex];
+
+    // Guardar información del carro seleccionado
+    await prefs.setString('selected_car_name', currentCar.name);
+    await prefs.setString('selected_car_image', currentCar.carImagePath);
+    await prefs.setString('selected_driver_name', currentCar.driverName);
+    await prefs.setString('selected_driver_image', currentCar.driverImagePath);
+
+    // Navegar a la selección de pista
+    Navigator.pushNamed(context, '/track_selection');
   }
 
   @override

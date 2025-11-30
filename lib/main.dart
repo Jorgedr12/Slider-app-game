@@ -5,6 +5,7 @@ import 'services/supabase_service.dart';
 import 'widgets/draggable_car.dart';
 import 'menu.dart';
 import 'car_selection.dart';
+import 'track_selection.dart';
 import 'settings.dart';
 
 void main() async {
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => Menu(),
         '/car_selection': (context) => CarSelectionScreen(),
+        '/track_selection': (context) => TrackSelectionScreen(),
         '/game': (context) => MyHomePage(title: 'Slider App'),
         '/settings': (context) => SettingsPage(),
       },
