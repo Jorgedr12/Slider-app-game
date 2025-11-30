@@ -4,14 +4,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/supabase_service.dart';
 import 'widgets/draggable_car.dart';
 import 'menu.dart';
+import 'car_selection.dart';
 import 'settings.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Load environment variables from .env
   await dotenv.load(fileName: ".env");
-  
+
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => Menu(),
+        '/car_selection': (context) => CarSelectionScreen(),
         '/game': (context) => MyHomePage(title: 'Slider App'),
         '/settings': (context) => SettingsPage(),
       },
@@ -75,11 +77,11 @@ class _MyHomePageState extends State<MyHomePage> {
         email: dotenv.env['AUTH_EMAIL']!,
         password: dotenv.env['AUTH_PASSWORD']!,
       );
-      
+
       final points = await _supabaseService.retrievePoints(
         playerName: 'Spongebob',
       );
-      
+
       if (points != null) {
         setState(() {
           _counter = points;
@@ -114,7 +116,9 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           IconButton(
             icon: Icon(_isVertical ? Icons.swap_horiz : Icons.swap_vert),
-            tooltip: _isVertical ? 'Change to horizontal' : 'Change to vertical',
+            tooltip: _isVertical
+                ? 'Change to horizontal'
+                : 'Change to vertical',
             onPressed: _toggleOrientation,
             padding: const EdgeInsets.only(top: 8.0, right: 16.0),
           ),
@@ -140,10 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             const Text('You have pushed the button this many times:'),
             const SizedBox(height: 20),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineLarge,
-            ),
+            Text('$_counter', style: Theme.of(context).textTheme.headlineLarge),
           ],
         ),
         const Spacer(flex: 2),
@@ -174,10 +175,7 @@ class _MyHomePageState extends State<MyHomePage> {
         const Spacer(flex: 2),
         const Text('You have pushed the button this many times:'),
         const SizedBox(width: 20),
-        Text(
-          '$_counter',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
+        Text('$_counter', style: Theme.of(context).textTheme.headlineMedium),
         const Spacer(flex: 2),
       ],
     );
@@ -190,17 +188,12 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Settings Page',
-              style: TextStyle(fontSize: 24),
-            ),
+            const Text('Settings Page', style: TextStyle(fontSize: 24)),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
