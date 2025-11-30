@@ -37,28 +37,28 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
 
   final List<TrackData> _tracks = [
     TrackData(
-      name: 'MONTE AKINA',
-      location: 'AKINA - DOWNHILL / UPHILL',
-      description: 'La legendaria montaña del equipo SpeedStars',
-      dioramaPath: 'assets/tracks/akina_diorama.png',
+      name: 'MOUNT AKINA',
+      location: 'TAKASAKI, JAPAN',
+      description: 'The legendary SpeedStars mountain',
+      dioramaPath: 'assets/dioramas/mountain.png',
       length: 8.5,
       recordHolder: 'TAKUMI F.',
       recordTime: '2:35.12',
     ),
     TrackData(
-      name: 'USUI',
-      location: 'USUI - DOWNHILL',
-      description: 'Peligrosas curvas en zigzag',
-      dioramaPath: 'assets/tracks/usui_diorama.png',
+      name: 'SLENDER FOREST',
+      location: 'OHIO, UNITED STATES',
+      description: 'Dangerous zigzag curves',
+      dioramaPath: 'assets/dioramas/forest.png',
       length: 7.2,
       recordHolder: 'KEISUKE T.',
       recordTime: '2:48.33',
     ),
     TrackData(
-      name: 'MYOGI',
-      location: 'MYOGI - DOWNHILL',
-      description: 'Territorio del equipo NightKids',
-      dioramaPath: 'assets/tracks/myogi_diorama.png',
+      name: 'UENO PARK',
+      location: 'UENO, JAPAN',
+      description: 'Beautiful scenic nightrace',
+      dioramaPath: 'assets/dioramas/cherry_blossom.png',
       length: 6.8,
       recordHolder: 'TAKESHI N.',
       recordTime: '2:52.47',
@@ -131,12 +131,8 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
       children: [
         Column(
           children: [
-            // Header compacto
             _buildHeader(),
-
             const SizedBox(height: 10),
-
-            // Info de la pista
             _buildTrackTitle(currentTrack),
 
             const SizedBox(height: 15),
@@ -150,35 +146,34 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                 ),
               ),
             ),
-
-            // Info del conductor (compacta)
             _buildDriverInfoCompact(),
 
             const SizedBox(height: 15),
-
-            // Lista de pistas
             _buildTrackList(),
-
             const SizedBox(height: 15),
-
-            // Botones
             _buildButtons(),
 
             const SizedBox(height: 15),
           ],
         ),
 
-        // Diorama flotante (PNG transparente)
+        // Diorama
         Positioned(
-          top: 120,
+          bottom: 280,
           right: 20,
           child: Container(
             width: 120,
             height: 100,
-            child: Icon(
-              Icons.landscape,
-              size: 60,
-              color: Colors.white.withOpacity(0.3),
+            child: Image.asset(
+              currentTrack.dioramaPath,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  Icons.landscape,
+                  size: 60,
+                  color: Colors.white.withOpacity(0.3),
+                );
+              },
             ),
           ),
         ),
@@ -191,20 +186,13 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
       children: [
         Column(
           children: [
-            // Header
             _buildHeader(),
-
             const SizedBox(height: 8),
-
-            // Info de la pista
             _buildTrackTitle(currentTrack),
-
             const SizedBox(height: 10),
-
             Expanded(
               child: Row(
                 children: [
-                  // Lado izquierdo: Carro
                   Expanded(
                     flex: 2,
                     child: Center(
@@ -217,8 +205,6 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                       ),
                     ),
                   ),
-
-                  // Lado derecho: Info conductor, lista y botones
                   Expanded(
                     flex: 2,
                     child: Column(
@@ -241,17 +227,23 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
           ],
         ),
 
-        // Diorama flotante arriba a la derecha
+        // Diorama
         Positioned(
-          top: 80,
-          right: 30,
+          top: 120,
+          left: 30,
           child: Container(
             width: 140,
             height: 110,
-            child: Icon(
-              Icons.landscape,
-              size: 70,
-              color: Colors.white.withOpacity(0.3),
+            child: Image.asset(
+              currentTrack.dioramaPath,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  Icons.landscape,
+                  size: 70,
+                  color: Colors.white.withOpacity(0.3),
+                );
+              },
             ),
           ),
         ),
@@ -261,30 +253,21 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.8),
-        border: Border(bottom: BorderSide(color: Colors.orange, width: 2)),
+        border: Border(bottom: BorderSide(color: Colors.orange, width: 3)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            'assets/logo/game_logo.png',
-            height: 35,
-            fit: BoxFit.contain,
+      child: Center(
+        child: Text(
+          'TRACK SELECTION',
+          style: TextStyle(
+            fontFamily: 'PressStart',
+            fontSize: 20,
+            color: Colors.white,
+            letterSpacing: 2,
           ),
-          const SizedBox(width: 12),
-          Text(
-            'SELECCIÓN DE RUTA',
-            style: TextStyle(
-              fontFamily: 'PressStart',
-              fontSize: 14,
-              color: Colors.white,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -293,12 +276,13 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
           color: Colors.black.withOpacity(0.85),
           border: Border.all(color: Colors.grey[600]!, width: 2),
         ),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               currentTrack.name,
@@ -309,7 +293,6 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                 letterSpacing: 1.5,
               ),
             ),
-            const SizedBox(height: 5),
             Text(
               currentTrack.location,
               style: TextStyle(
@@ -336,7 +319,6 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Foto del conductor
             Container(
               width: 50,
               height: 50,
@@ -349,7 +331,6 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                   : Icon(Icons.person, color: Colors.grey[600], size: 30),
             ),
             const SizedBox(width: 12),
-            // Información
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,7 +357,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'RÉCORD: ${_tracks[_currentTrackIndex].recordTime}',
+                    'RECORD: ${_tracks[_currentTrackIndex].recordTime}',
                     style: TextStyle(
                       fontFamily: 'PressStart',
                       fontSize: 7,
@@ -463,7 +444,6 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          // Botón ATRÁS
           Expanded(
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
@@ -479,7 +459,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                     Icon(Icons.arrow_back, color: Colors.white, size: 16),
                     const SizedBox(width: 6),
                     Text(
-                      'ATRÁS',
+                      'BACK',
                       style: TextStyle(
                         fontFamily: 'PressStart',
                         fontSize: 12,
@@ -494,7 +474,6 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
 
           const SizedBox(width: 10),
 
-          // Botón INICIAR RUTA
           Expanded(
             child: GestureDetector(
               onTap: _startRace,
@@ -512,7 +491,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                   ],
                 ),
                 child: Text(
-                  'INICIAR RUTA',
+                  'START RACE',
                   style: TextStyle(
                     fontFamily: 'PressStart',
                     fontSize: 12,
