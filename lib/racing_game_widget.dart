@@ -11,14 +11,16 @@ import 'package:slider_app/racing_game.dart';
 /// Maneja el estado de pausa, orientación, audio y overlays
 class RacingGameWidget extends StatefulWidget {
   final bool startVertical;
-  final String selectedCar;
+  final String selectedCarSprite;
+  final String trackFolder;
   final String trackName;
 
   const RacingGameWidget({
     super.key,
     this.startVertical = true,
-    this.selectedCar = 'Naranja',
-    this.trackName = 'MONTE AKINA',
+    this.selectedCarSprite = 'cars/toyota_ae86.png',
+    this.trackFolder = 'montana',
+    this.trackName = 'retro',
   });
 
   @override
@@ -38,16 +40,27 @@ class _RacingGameWidgetState extends State<RacingGameWidget> {
     _isVertical = widget.startVertical;
     _gameAudioPlayer = AudioPlayer();
 
-    // Inicializar el juego
+    // Inicializar el juego con los datos recibidos
     _game = RacingGame(
       isVertical: _isVertical,
-      selectedCarSprite: widget.selectedCar,
+      selectedCarSprite: widget.selectedCarSprite, // ⭐ Sprite del carro
+      selectedTrack: widget.trackFolder, // ⭐ Carpeta del escenario
     );
 
     // Configurar callbacks
     _game.onPauseRequest = _togglePause;
     _game.onGameOver = _showGameOver;
-    _game.selectedTrack = widget.trackName;
+    _game.currentTrackName = widget.trackName; // ⭐ Nombre para mostrar
+
+    debugPrint('═══════════════════════════════════════');
+    debugPrint('🎮 VALORES RECIBIDOS EN EL JUEGO:');
+    debugPrint('   Sprite del carro: ${widget.selectedCarSprite}');
+    debugPrint('   Carpeta de pista: ${widget.trackFolder}');
+    debugPrint('   Nombre de pista: ${widget.trackName}');
+    debugPrint(
+      '   Orientación: ${widget.startVertical ? "Vertical" : "Horizontal"}',
+    );
+    debugPrint('═══════════════════════════════════════');
 
     _playGameMusic();
   }

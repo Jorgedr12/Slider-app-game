@@ -37,30 +37,22 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
-        '/': (context) => Menu(),
-        '/car_selection': (context) => CarSelectionScreen(),
-        '/track_selection': (context) => TrackSelectionScreen(),
-        '/settings': (context) => SettingsPage(),
-        '/game': (context) => const RacingGameWidget(
-          startVertical: true,
-          selectedCar: 'Naranja',
-          trackName: 'MONTE AKINA',
-        ),
-        // Puedes agregar más rutas aquí
-        // '/shop': (context) => const ShopPage(),
-        // '/credits': (context) => const CreditsPage(),
-        // '/ranking': (context) => const RankingPage(),
+        '/': (context) => const Menu(),
+        '/car_selection': (context) => const CarSelectionScreen(),
+        '/track_selection': (context) => const TrackSelectionScreen(),
+        '/settings': (context) => const SettingsPage(),
       },
       onGenerateRoute: (settings) {
-        // Manejo de rutas dinámicas si necesitas pasar parámetros
+        // Manejar la ruta del juego con argumentos
         if (settings.name == '/game') {
           final args = settings.arguments as Map<String, dynamic>?;
 
           return MaterialPageRoute(
             builder: (context) => RacingGameWidget(
               startVertical: args?['isVertical'] ?? true,
-              selectedCar: args?['carColor'] ?? 'Naranja',
-              trackName: args?['trackName'] ?? 'MONTE AKINA',
+              selectedCarSprite: args?['carSprite'] ?? 'cars/toyota_ae86.png',
+              trackFolder: args?['trackFolder'] ?? 'retro',
+              trackName: args?['trackName'] ?? 'RETRO TRACK',
             ),
           );
         }

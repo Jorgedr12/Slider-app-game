@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:slider_app/game_size_config.dart';
 
 /// Clase principal del juego de carreras
 /// Maneja la lógica del juego, física, colisiones y estado
@@ -23,16 +24,19 @@ class RacingGame extends FlameGame
   String selectedTrack = 'akina';
   String currentTrackName = 'MONTE AKINA';
 
-  // Velocidad del juego (aumenta con el tiempo)
-  double gameSpeed = 200.0; // píxeles por segundo
+  // Velocidad del juego
+  double gameSpeed = 200.0;
   double baseSpeed = 200.0;
-  double speedIncrement = 5.0; // incremento por segundo
+  double speedIncrement = 5.0;
+
+  // ⭐ NUEVO: Configuración de tamaños
+  late GameSizeConfig sizeConfig;
 
   // Componentes principales
   late PlayerCar playerCar;
   late TrackBackground trackBackground;
 
-  // Callbacks para el widget
+  // Callbacks
   Function()? onPauseRequest;
   Function()? onGameOver;
 
@@ -49,7 +53,25 @@ class RacingGame extends FlameGame
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Configurar cámara
+    // ⭐ NUEVO: Inicializar configuración de tamaños
+    sizeConfig = GameSizeConfig(
+      screenSize: Size(size.x, size.y),
+      isVertical: isVertical,
+    );
+
+    debugPrint('═══════════════════════════════════');
+    debugPrint('📐 CONFIGURACIÓN DE TAMAÑOS:');
+    debugPrint('   Pantalla: ${size.x.toInt()}x${size.y.toInt()}');
+    debugPrint('   Orientación: ${isVertical ? "Vertical" : "Horizontal"}');
+    debugPrint('   Carriles: ${sizeConfig.numberOfLanes}');
+    debugPrint('   Ancho carril: ${sizeConfig.laneWidth.toInt()}px');
+    debugPrint(
+      '   Tamaño carro: ${sizeConfig.carWidth.toInt()}x${sizeConfig.carHeight.toInt()}',
+    );
+    debugPrint('   Ancho carretera: ${sizeConfig.roadWidth.toInt()}px');
+    debugPrint('   Ancho lados: ${sizeConfig.sideWidth.toInt()}px');
+    debugPrint('═══════════════════════════════════');
+
     camera.viewfinder.anchor = Anchor.topLeft;
 
     // Crear el fondo de la pista
@@ -66,7 +88,6 @@ class RacingGame extends FlameGame
     );
     world.add(playerCar);
 
-    // Iniciar generación de obstáculos
     _startObstacleGeneration();
   }
 
@@ -75,24 +96,17 @@ class RacingGame extends FlameGame
     super.update(dt);
 
     if (!paused && !isGameOver) {
-      // Actualizar distancia
-      distance += gameSpeed * dt / 10; // Convertir a metros
-
-      // Consumir gasolina (ajusta el rate según prefieras)
-      fuel -= 8 * dt; // 8% por segundo aprox
-
-      // Aumentar velocidad gradualmente
+      distance += gameSpeed * dt / 10;
+      fuel -= 8 * dt;
       gameSpeed += speedIncrement * dt;
-      currentSpeed = gameSpeed / 2.78; // Convertir a km/h aprox
+      currentSpeed = gameSpeed / 2.78;
 
       if (currentSpeed > maxSpeed) {
         maxSpeed = currentSpeed;
       }
 
-      // Actualizar velocidad del fondo
       trackBackground.gameSpeed = gameSpeed;
 
-      // Verificar Game Over
       if (fuel <= 0) {
         fuel = 0;
         _triggerGameOver();
@@ -105,7 +119,6 @@ class RacingGame extends FlameGame
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    // Solo procesar si no está pausado
     if (paused) {
       if (event is KeyDownEvent &&
           event.logicalKey == LogicalKeyboardKey.escape) {
@@ -131,7 +144,6 @@ class RacingGame extends FlameGame
     return KeyEventResult.ignored;
   }
 
-  // Detección de gestos táctiles (swipe)
   @override
   void onPanStart(DragStartInfo info) {
     _panStartPosition = info.eventPosition.global;
@@ -144,26 +156,19 @@ class RacingGame extends FlameGame
     final currentPosition = info.eventPosition.global;
     final delta = currentPosition - _panStartPosition!;
 
-    // Detectar swipe según orientación
     if (isVertical) {
-      // En vertical, swipe horizontal
       if (delta.x < -50) {
-        // Swipe a la izquierda
         playerCar.moveLeft();
         _panStartPosition = currentPosition;
       } else if (delta.x > 50) {
-        // Swipe a la derecha
         playerCar.moveRight();
         _panStartPosition = currentPosition;
       }
     } else {
-      // En horizontal, swipe vertical
       if (delta.y < -50) {
-        // Swipe hacia arriba
         playerCar.moveLeft();
         _panStartPosition = currentPosition;
       } else if (delta.y > 50) {
-        // Swipe hacia abajo
         playerCar.moveRight();
         _panStartPosition = currentPosition;
       }
@@ -222,6 +227,18 @@ class RacingGame extends FlameGame
 
   void toggleOrientation() {
     isVertical = !isVertical;
+
+    // ⭐ NUEVO: Recalcular tamaños al cambiar orientación
+    sizeConfig = GameSizeConfig(
+      screenSize: Size(size.x, size.y),
+      isVertical: isVertical,
+    );
+
+    debugPrint(
+      '🔄 Orientación cambiada a: ${isVertical ? "Vertical" : "Horizontal"}',
+    );
+    debugPrint('   Nuevos carriles: ${sizeConfig.numberOfLanes}');
+
     trackBackground.updateOrientation(isVertical);
     playerCar.updateOrientation(isVertical);
 
@@ -239,13 +256,19 @@ class RacingGame extends FlameGame
   }
 }
 
-/// Componente del carro del jugador con sprites
-class PlayerCar extends SpriteComponent with HasGameReference<RacingGame> {
+/// Componente del carro del jugador - Ahora usa GameSizeConfig
+class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
   bool isVertical;
   String carSpritePath;
 
+  // Sprite que puede ser null
+  Sprite? carSprite;
+
+  // Paint para fallback
+  final Paint fallbackPaint = Paint()..color = Colors.orange;
+
   int currentLane = 1;
-  final int totalLanes = 3;
+  int get totalLanes => game.sizeConfig.numberOfLanes; // ⭐ Dinámico
 
   double laneChangeSpeed = 500.0;
   Vector2 targetPosition = Vector2.zero();
@@ -260,26 +283,60 @@ class PlayerCar extends SpriteComponent with HasGameReference<RacingGame> {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Cargar sprite del carro
     try {
-      sprite = await Sprite.load(carSpritePath);
+      carSprite = await Sprite.load(carSpritePath);
+      debugPrint('✅ Sprite del carro cargado: $carSpritePath');
     } catch (e) {
-      debugPrint('Error cargando sprite del carro: $e');
-      // Fallback: usar color sólido
-      paint = Paint()..color = Colors.orange;
+      debugPrint('❌ Error cargando sprite del carro: $e');
+      debugPrint('🎨 Usando color fallback: NARANJA');
+      carSprite = null; // Explícitamente null
     }
 
-    // Tamaño del carro
+    // ⭐ NUEVO: Tamaño del carro desde GameSizeConfig
     if (isVertical) {
-      size = Vector2(80, 120);
+      size = Vector2(game.sizeConfig.carWidth, game.sizeConfig.carHeight);
     } else {
-      size = Vector2(120, 80);
+      size = Vector2(game.sizeConfig.carHeight, game.sizeConfig.carWidth);
     }
 
     anchor = Anchor.center;
 
     _updatePosition();
     targetPosition = position.clone();
+
+    debugPrint('🚗 Carro creado - Tamaño: ${size.x.toInt()}x${size.y.toInt()}');
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    if (carSprite != null) {
+      // Renderizar sprite
+      carSprite!.render(
+        canvas,
+        position: Vector2.zero(),
+        size: size,
+        anchor: Anchor.center,
+      );
+    } else {
+      // Renderizar fallback (rectángulo naranja)
+      final rect = Rect.fromCenter(
+        center: Offset.zero,
+        width: size.x,
+        height: size.y,
+      );
+      canvas.drawRect(rect, fallbackPaint);
+
+      // Opcional: Dibujar borde negro para que se vea mejor
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = Colors.black
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
   }
 
   @override
@@ -342,55 +399,45 @@ class PlayerCar extends SpriteComponent with HasGameReference<RacingGame> {
   }
 
   void _updatePosition() {
-    final gameSize = game.size;
+    final config = game.sizeConfig;
 
     if (isVertical) {
-      final laneWidth = gameSize.x / totalLanes;
-      position = Vector2(
-        laneWidth * currentLane + laneWidth / 2,
-        gameSize.y - 150,
-      );
+      // ⭐ NUEVO: Usar getLaneCenterX de GameSizeConfig
+      position = Vector2(config.getLaneCenterX(currentLane), game.size.y - 150);
     } else {
-      final laneHeight = gameSize.y / totalLanes;
-      position = Vector2(150, laneHeight * currentLane + laneHeight / 2);
+      // ⭐ NUEVO: Usar getLaneCenterY de GameSizeConfig
+      position = Vector2(150, config.getLaneCenterY(currentLane));
     }
   }
 
   void _updateTargetPosition() {
-    final gameSize = game.size;
+    final config = game.sizeConfig;
 
     if (isVertical) {
-      final laneWidth = gameSize.x / totalLanes;
-      targetPosition = Vector2(
-        laneWidth * currentLane + laneWidth / 2,
-        position.y,
-      );
+      targetPosition = Vector2(config.getLaneCenterX(currentLane), position.y);
     } else {
-      final laneHeight = gameSize.y / totalLanes;
-      targetPosition = Vector2(
-        position.x,
-        laneHeight * currentLane + laneHeight / 2,
-      );
+      targetPosition = Vector2(position.x, config.getLaneCenterY(currentLane));
     }
   }
 
   void updateOrientation(bool vertical) {
     isVertical = vertical;
 
+    // ⭐ NUEVO: Actualizar tamaño según nueva configuración
     if (isVertical) {
-      size = Vector2(80, 120);
+      size = Vector2(game.sizeConfig.carWidth, game.sizeConfig.carHeight);
     } else {
-      size = Vector2(120, 80);
+      size = Vector2(game.sizeConfig.carHeight, game.sizeConfig.carWidth);
     }
 
-    currentLane = 1;
+    currentLane = totalLanes ~/ 2; // Carril central
     _updatePosition();
     targetPosition = position.clone();
     isChangingLane = false;
   }
 
   void resetPosition() {
-    currentLane = 1;
+    currentLane = totalLanes ~/ 2; // Carril central
     _updatePosition();
     targetPosition = position.clone();
     isChangingLane = false;
@@ -399,14 +446,13 @@ class PlayerCar extends SpriteComponent with HasGameReference<RacingGame> {
   }
 }
 
-/// Fondo de la pista con sprites y parallax
+/// Fondo de la pista - Ahora usa GameSizeConfig
 class TrackBackground extends Component with HasGameReference<RacingGame> {
   bool isVertical;
   String trackName;
   double gameSpeed = 200.0;
   double scrollOffset = 0;
 
-  // Sprites
   Sprite? roadSprite;
   Sprite? leftSideSprite;
   Sprite? rightSideSprite;
@@ -417,14 +463,13 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Cargar sprites de la pista
     try {
-      roadSprite = await Sprite.load('escenarios/${trackName}_road.png');
-      leftSideSprite = await Sprite.load('escenarios/retro_left.png');
-      rightSideSprite = await Sprite.load('escenarios/retro_right.png');
+      roadSprite = await Sprite.load('escenarios/$trackName/road.png');
+      leftSideSprite = await Sprite.load('escenarios/$trackName/left.png');
+      rightSideSprite = await Sprite.load('escenarios/$trackName/right.png');
+      debugPrint('✅ Sprites de pista cargados: $trackName');
     } catch (e) {
-      debugPrint('Error cargando sprites de la pista: $e');
-      // Los sprites quedan null y se dibuja con colores sólidos
+      debugPrint('❌ Error cargando sprites de pista: $e');
     }
   }
 
@@ -463,32 +508,32 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   }
 
   void _renderVerticalTrack(Canvas canvas, Vector2 gameSize) {
-    final laneWidth = gameSize.x / 3;
-    final sideWidth = (gameSize.x - laneWidth * 3) / 2;
+    final config = game.sizeConfig;
 
+    // ⭐ NUEVO: Usar valores de GameSizeConfig
     // Lado izquierdo
     _drawSide(
       canvas,
-      Rect.fromLTWH(0, 0, laneWidth * 0.3, gameSize.y),
+      Rect.fromLTWH(0, 0, config.sideWidth, gameSize.y),
       leftSideSprite,
-      const Color(0xFF2d5016), // Verde oscuro (pasto)
+      const Color(0xFF2d5016),
     );
 
     // Carretera
     _drawRoad(
       canvas,
-      Rect.fromLTWH(laneWidth * 0.3, 0, laneWidth * 3, gameSize.y),
+      Rect.fromLTWH(config.sideWidth, 0, config.roadWidth, gameSize.y),
       roadSprite,
-      const Color(0xFF3a3a3a), // Gris oscuro (asfalto)
+      const Color(0xFF3a3a3a),
     );
 
     // Lado derecho
     _drawSide(
       canvas,
       Rect.fromLTWH(
-        laneWidth * 3.3,
+        config.sideWidth + config.roadWidth,
         0,
-        gameSize.x - laneWidth * 3.3,
+        config.sideWidth,
         gameSize.y,
       ),
       rightSideSprite,
@@ -497,12 +542,12 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   }
 
   void _renderHorizontalTrack(Canvas canvas, Vector2 gameSize) {
-    final laneHeight = gameSize.y / 3;
+    final config = game.sizeConfig;
 
     // Lado superior
     _drawSide(
       canvas,
-      Rect.fromLTWH(0, 0, gameSize.x, laneHeight * 0.3),
+      Rect.fromLTWH(0, 0, gameSize.x, config.sideWidth),
       leftSideSprite,
       const Color(0xFF2d5016),
     );
@@ -510,7 +555,7 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
     // Carretera
     _drawRoad(
       canvas,
-      Rect.fromLTWH(0, laneHeight * 0.3, gameSize.x, laneHeight * 3),
+      Rect.fromLTWH(0, config.sideWidth, gameSize.x, config.roadWidth),
       roadSprite,
       const Color(0xFF3a3a3a),
     );
@@ -520,9 +565,9 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
       canvas,
       Rect.fromLTWH(
         0,
-        laneHeight * 3.3,
+        config.sideWidth + config.roadWidth,
         gameSize.x,
-        gameSize.y - laneHeight * 3.3,
+        config.sideWidth,
       ),
       rightSideSprite,
       const Color(0xFF2d5016),
@@ -536,7 +581,6 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
     Color fallbackColor,
   ) {
     if (sprite != null) {
-      // Dibujar sprite repetido con scroll
       final spriteSize = isVertical
           ? Vector2(rect.width, rect.width)
           : Vector2(rect.height, rect.height);
@@ -563,7 +607,6 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
         }
       }
     } else {
-      // Fallback: color sólido
       canvas.drawRect(rect, Paint()..color = fallbackColor);
     }
   }
@@ -586,6 +629,8 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   }
 
   void _drawLaneMarkings(Canvas canvas, Vector2 gameSize) {
+    final config = game.sizeConfig;
+
     final dashedPaint = Paint()
       ..color = Colors.yellow
       ..strokeWidth = 4
@@ -597,49 +642,40 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
       ..style = PaintingStyle.stroke;
 
     if (isVertical) {
-      final laneWidth = gameSize.x / 3;
-      final roadLeft = laneWidth * 0.3;
-      final roadRight = laneWidth * 3.3;
-
       // Líneas de borde
-      _drawDashedVerticalLine(canvas, roadLeft, gameSize.y, edgePaint);
-      _drawDashedVerticalLine(canvas, roadRight, gameSize.y, edgePaint);
+      _drawDashedVerticalLine(canvas, config.sideWidth, gameSize.y, edgePaint);
+      _drawDashedVerticalLine(
+        canvas,
+        config.sideWidth + config.roadWidth,
+        gameSize.y,
+        edgePaint,
+      );
 
-      // Líneas de carriles
-      _drawDashedVerticalLine(
-        canvas,
-        roadLeft + laneWidth,
-        gameSize.y,
-        dashedPaint,
-      );
-      _drawDashedVerticalLine(
-        canvas,
-        roadLeft + laneWidth * 2,
-        gameSize.y,
-        dashedPaint,
-      );
+      // ⭐ NUEVO: Líneas de carriles dinámicas según número de carriles
+      for (int i = 1; i < config.numberOfLanes; i++) {
+        final x = config.sideWidth + (i * config.laneWidth);
+        _drawDashedVerticalLine(canvas, x, gameSize.y, dashedPaint);
+      }
     } else {
-      final laneHeight = gameSize.y / 3;
-      final roadTop = laneHeight * 0.3;
-      final roadBottom = laneHeight * 3.3;
-
       // Líneas de borde
-      _drawDashedHorizontalLine(canvas, roadTop, gameSize.x, edgePaint);
-      _drawDashedHorizontalLine(canvas, roadBottom, gameSize.x, edgePaint);
+      _drawDashedHorizontalLine(
+        canvas,
+        config.sideWidth,
+        gameSize.x,
+        edgePaint,
+      );
+      _drawDashedHorizontalLine(
+        canvas,
+        config.sideWidth + config.roadWidth,
+        gameSize.x,
+        edgePaint,
+      );
 
-      // Líneas de carriles
-      _drawDashedHorizontalLine(
-        canvas,
-        roadTop + laneHeight,
-        gameSize.x,
-        dashedPaint,
-      );
-      _drawDashedHorizontalLine(
-        canvas,
-        roadTop + laneHeight * 2,
-        gameSize.x,
-        dashedPaint,
-      );
+      // Líneas de carriles dinámicas
+      for (int i = 1; i < config.numberOfLanes; i++) {
+        final y = config.sideWidth + (i * config.laneWidth);
+        _drawDashedHorizontalLine(canvas, y, gameSize.x, dashedPaint);
+      }
     }
   }
 
@@ -685,57 +721,91 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   }
 }
 
-/// Componente de obstáculo
-class ObstacleComponent extends SpriteComponent
+/// Componente de obstáculo - Ahora usa GameSizeConfig
+class ObstacleComponent extends PositionComponent
     with HasGameReference<RacingGame> {
   bool isVertical;
   double gameSpeed;
   int lane;
   bool hasPassed = false;
 
-  ObstacleComponent({required this.isVertical, required this.gameSpeed})
-    : lane = _randomLane();
+  // Sprite que puede ser null
+  Sprite? obstacleSprite;
 
-  static int _randomLane() {
-    return (DateTime.now().millisecondsSinceEpoch % 3);
-  }
+  // Paint para fallback
+  final Paint fallbackPaint = Paint()..color = Colors.red.withOpacity(0.8);
+
+  ObstacleComponent({required this.isVertical, required this.gameSpeed})
+    : lane = 0;
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    final gameSize = game.size;
+    // ⭐ NUEVO: Carril aleatorio según número de carriles disponibles
+    lane =
+        DateTime.now().millisecondsSinceEpoch % game.sizeConfig.numberOfLanes;
 
-    // Cargar sprite del obstáculo
     try {
-      sprite = await Sprite.load('obstacles/cone.png');
+      obstacleSprite = await Sprite.load('obstacles/cone.png');
+      debugPrint('✅ Sprite obstáculo cargado');
     } catch (e) {
-      debugPrint('Error cargando sprite de obstáculo: $e');
-      paint = Paint()..color = Colors.red.withOpacity(0.8);
+      debugPrint('❌ Error cargando sprite de obstáculo: $e');
+      debugPrint('🎨 Usando color fallback: ROJO');
+      obstacleSprite = null;
     }
 
+    // ⭐ NUEVO: Tamaño escalado según GameSizeConfig
+    final obstacleSize = game.sizeConfig.getObstacleSize(60, 80);
     if (isVertical) {
-      size = Vector2(60, 80);
+      size = obstacleSize;
     } else {
-      size = Vector2(80, 60);
+      size = Vector2(obstacleSize.y, obstacleSize.x);
     }
 
     anchor = Anchor.center;
-    _setInitialPosition(gameSize);
+    _setInitialPosition(game.size);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    if (obstacleSprite != null) {
+      // Renderizar sprite
+      obstacleSprite!.render(
+        canvas,
+        position: Vector2.zero(),
+        size: size,
+        anchor: Anchor.center,
+      );
+    } else {
+      // Renderizar fallback (rectángulo rojo)
+      final rect = Rect.fromCenter(
+        center: Offset.zero,
+        width: size.x,
+        height: size.y,
+      );
+      canvas.drawRect(rect, fallbackPaint);
+
+      // Borde negro
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = Colors.black
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
   }
 
   void _setInitialPosition(Vector2 gameSize) {
+    final config = game.sizeConfig;
+
     if (isVertical) {
-      final laneWidth = gameSize.x / 3;
-      final roadLeft = laneWidth * 0.3;
-      position = Vector2(roadLeft + laneWidth * lane + laneWidth / 2, -size.y);
+      position = Vector2(config.getLaneCenterX(lane), -size.y);
     } else {
-      final laneHeight = gameSize.y / 3;
-      final roadTop = laneHeight * 0.3;
-      position = Vector2(
-        gameSize.x + size.x,
-        roadTop + laneHeight * lane + laneHeight / 2,
-      );
+      position = Vector2(gameSize.x + size.x, config.getLaneCenterY(lane));
     }
   }
 
@@ -776,8 +846,9 @@ class ObstacleComponent extends SpriteComponent
     final playerCar = game.playerCar;
     final distance = position.distanceTo(playerCar.position);
 
-    // Colisión simple por distancia
-    if (distance < 60) {
+    // Colisión ajustada al tamaño del carro
+    final collisionRadius = game.sizeConfig.carWidth / 2 + 20;
+    if (distance < collisionRadius) {
       game.fuel -= 10;
       removeFromParent();
     }
@@ -786,10 +857,11 @@ class ObstacleComponent extends SpriteComponent
   void updateOrientation(bool vertical) {
     isVertical = vertical;
 
+    final obstacleSize = game.sizeConfig.getObstacleSize(60, 80);
     if (isVertical) {
-      size = Vector2(60, 80);
+      size = obstacleSize;
     } else {
-      size = Vector2(80, 60);
+      size = Vector2(obstacleSize.y, obstacleSize.x);
     }
   }
 }

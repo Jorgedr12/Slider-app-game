@@ -76,7 +76,11 @@ class _MenuState extends State<Menu> {
                         'PLAY',
                         selected: true,
                         onTap: () {
-                          Navigator.pushNamed(context, '/car_selection');
+                          _audioPlayer.stop();
+                          Navigator.pushNamed(
+                            context,
+                            '/car_selection',
+                          ); // ⭐ Cambiar aquí
                         },
                       ),
                       const SizedBox(height: 1),
