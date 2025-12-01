@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:slider_app/menu.dart';
+import 'package:slider_app/racing_game_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/supabase_service.dart';
 import 'widgets/draggable_car.dart';
-import 'menu.dart';
 import 'car_selection.dart';
 import 'track_selection.dart';
 import 'settings.dart';
@@ -28,9 +29,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Slider App',
+      title: 'Initial D Racing Game',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+        useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
@@ -38,8 +40,31 @@ class MyApp extends StatelessWidget {
         '/': (context) => Menu(),
         '/car_selection': (context) => CarSelectionScreen(),
         '/track_selection': (context) => TrackSelectionScreen(),
-        '/game': (context) => MyHomePage(title: 'Slider App'),
         '/settings': (context) => SettingsPage(),
+        '/game': (context) => const RacingGameWidget(
+          startVertical: true,
+          selectedCar: 'Naranja',
+          trackName: 'MONTE AKINA',
+        ),
+        // Puedes agregar más rutas aquí
+        // '/shop': (context) => const ShopPage(),
+        // '/credits': (context) => const CreditsPage(),
+        // '/ranking': (context) => const RankingPage(),
+      },
+      onGenerateRoute: (settings) {
+        // Manejo de rutas dinámicas si necesitas pasar parámetros
+        if (settings.name == '/game') {
+          final args = settings.arguments as Map<String, dynamic>?;
+
+          return MaterialPageRoute(
+            builder: (context) => RacingGameWidget(
+              startVertical: args?['isVertical'] ?? true,
+              selectedCar: args?['carColor'] ?? 'Naranja',
+              trackName: args?['trackName'] ?? 'MONTE AKINA',
+            ),
+          );
+        }
+        return null;
       },
     );
   }
@@ -206,6 +231,26 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Ejemplo de cómo navegar al juego con parámetros desde el menú
+class GameLauncher {
+  static void launchGame(
+    BuildContext context, {
+    bool isVertical = true,
+    String carColor = 'Naranja',
+    String trackName = 'MONTE AKINA',
+  }) {
+    Navigator.pushNamed(
+      context,
+      '/game',
+      arguments: {
+        'isVertical': isVertical,
+        'carColor': carColor,
+        'trackName': trackName,
+      },
     );
   }
 }
