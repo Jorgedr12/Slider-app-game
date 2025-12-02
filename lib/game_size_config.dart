@@ -39,8 +39,8 @@ class GameSizeConfig {
 
     // El carro ocupa ~9% del ancho/alto de la pantalla como lado corto
     carWidth = (screenDimension * 0.09).clamp(50.0, 140.0);
-    // Ajuste: el carro era muy ancho; usamos alto = 2 * ancho
-    carHeight = carWidth * 2.0; // Relación 1:2 (ancho:alto)
+    // Ajuste: el carro era muy ancho; usamos alto = 1.8 * ancho (antes 2.0)
+    carHeight = carWidth * 1.8; // Relación 1:1.8 (ancho:alto)
 
     // Calcular ancho de carril (1.3 veces el ancho del carro)
     laneWidth = carWidth * laneWidthMultiplier;

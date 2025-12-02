@@ -65,6 +65,25 @@ class RacingGame extends FlameGame
     // Debe terminar en '/': evita error "Prefix must be empty or end with a /"
     Flame.images.prefix = 'assets/';
 
+    // ⭐ PRE-CARGA DE ASSETS
+    // Cargamos todo en memoria ahora para evitar lag durante el juego
+    try {
+      await Flame.images.loadAll([
+        selectedCarSprite,
+        'escenarios/$selectedTrack/road.png',
+        'escenarios/$selectedTrack/left.png',
+        'escenarios/$selectedTrack/right.png',
+        'obstacles/cone.png',
+        'obstacles/llantas.png',
+        'obstacles/valla.png',
+        'obstacles/coin.png',
+        'obstacles/fuel.png',
+      ]);
+      debugPrint('✅ Assets precargados correctamente');
+    } catch (e) {
+      debugPrint('⚠️ Error precargando assets: $e');
+    }
+
     // ⭐ NUEVO: Inicializar configuración de tamaños
     sizeConfig = GameSizeConfig(
       screenSize: Size(size.x, size.y),
@@ -185,8 +204,8 @@ class RacingGame extends FlameGame
   void _resetSpawnTimer() {
     _spawnTimer?.removeFromParent();
 
-    // Más rápido en horizontal (0.5s) que en vertical (0.8s)
-    final double spawnPeriod = isVertical ? 0.8 : 0.5;
+    // Más rápido en horizontal (0.4s) que en vertical (0.6s)
+    final double spawnPeriod = isVertical ? 0.6 : 0.4;
 
     _spawnTimer = TimerComponent(
       period: spawnPeriod,
@@ -838,6 +857,18 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   }
 }
 
+class ObstacleData {
+  final String path;
+  final double hitboxWidthFactor;
+  final double hitboxHeightFactor;
+
+  const ObstacleData(
+    this.path,
+    this.hitboxWidthFactor,
+    this.hitboxHeightFactor,
+  );
+}
+
 /// Componente de obstáculo - Ahora usa GameSizeConfig
 class ObstacleComponent extends PositionComponent
     with HasGameReference<RacingGame> {
@@ -845,6 +876,16 @@ class ObstacleComponent extends PositionComponent
   double gameSpeed;
   // int lane; // Eliminado: ya no usamos carriles fijos
   bool hasPassed = false;
+
+  // Tipos de obstáculos
+  static const List<String> types = ['cone', 'llantas', 'valla'];
+  late String type;
+
+  static const Map<String, ObstacleData> obstacleConfig = {
+    'cone': ObstacleData('obstacles/cone.png', 0.6, 0.6),
+    'llantas': ObstacleData('obstacles/llantas.png', 0.85, 0.85),
+    'valla': ObstacleData('obstacles/valla.png', 0.95, 0.4),
+  };
 
   // Sprite que puede ser null
   Sprite? obstacleSprite;
@@ -856,13 +897,18 @@ class ObstacleComponent extends PositionComponent
 
   @override
   Future<void> onLoad() async {
+    // Seleccionar tipo aleatorio
+    type = types[Random().nextInt(types.length)];
+
     await super.onLoad();
 
+    final data = obstacleConfig[type]!;
+
     try {
-      obstacleSprite = await Sprite.load('obstacles/cone.png');
-      debugPrint('✅ Sprite obstáculo cargado');
+      obstacleSprite = await Sprite.load(data.path);
+      debugPrint('✅ Sprite obstáculo cargado: ${data.path}');
     } catch (e) {
-      debugPrint('❌ Error cargando sprite de obstáculo: $e');
+      debugPrint('❌ Error cargando sprite de obstáculo ($type): $e');
       debugPrint('🎨 Usando color fallback: ROJO');
       obstacleSprite = null;
     }
@@ -922,11 +968,12 @@ class ObstacleComponent extends PositionComponent
 
   /// Obtener el Rect de colisión en coordenadas locales
   Rect getHitboxRectLocal() {
-    // Hitbox ajustada (80% del tamaño visual), centrada en el componente
+    final data = obstacleConfig[type]!;
+    // Hitbox ajustada según el tipo de obstáculo
     return Rect.fromCenter(
       center: Offset(size.x / 2, size.y / 2),
-      width: size.x * 0.8,
-      height: size.y * 0.8,
+      width: size.x * data.hitboxWidthFactor,
+      height: size.y * data.hitboxHeightFactor,
     );
   }
 
@@ -1168,7 +1215,7 @@ class CoinComponent extends PositionComponent
     final Rect coinRect = getHitboxRect();
 
     if (playerRect.overlaps(coinRect)) {
-      game.incrementCoins(1);
+      game.incrementCoins(100);
       removeFromParent();
     }
   }

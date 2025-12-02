@@ -120,7 +120,7 @@ class _ShopState extends State<Shop> {
   Future<void> _loadPlayerData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      coinBank = prefs.getInt('coinBank') ?? 0;
+      coinBank = prefs.getInt('coin_bank') ?? 0;
       healthUpgradeCount = prefs.getInt('healthUpgradeCount') ?? 0;
       fuelUpgradeCount = prefs.getInt('fuelUpgradeCount') ?? 0;
       maxFuel = prefs.getDouble('maxFuel') ?? 100.0;
@@ -130,7 +130,7 @@ class _ShopState extends State<Shop> {
 
   Future<void> _savePlayerData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('coinBank', coinBank);
+    await prefs.setInt('coin_bank', coinBank);
     await prefs.setInt('healthUpgradeCount', healthUpgradeCount);
     await prefs.setInt('fuelUpgradeCount', fuelUpgradeCount);
     await prefs.setDouble('maxFuel', maxFuel);
