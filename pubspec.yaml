@@ -65,7 +65,6 @@ flutter:
   assets:
     - .env
     - assets/music/
-    # Directorios completos para evitar 404 en Web
     - assets/cars/
     - assets/escenarios/
     - assets/obstacles/

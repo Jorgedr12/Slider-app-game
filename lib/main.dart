@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/supabase_service.dart';
 import 'widgets/draggable_car.dart';
 import 'car_selection.dart';
+import 'shop.dart';
 import 'track_selection.dart';
 import 'settings.dart';
 
@@ -41,6 +42,7 @@ class MyApp extends StatelessWidget {
         '/car_selection': (context) => const CarSelectionScreen(),
         '/track_selection': (context) => const TrackSelectionScreen(),
         '/settings': (context) => const SettingsPage(),
+        '/shop': (context) => Shop(),
       },
       onGenerateRoute: (settings) {
         // Manejar la ruta del juego con argumentos
