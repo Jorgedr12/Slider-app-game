@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:slider_app/game_size_config.dart';
 import 'dart:math';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Clase principal del juego de carreras
 /// Maneja la lógica del juego, física, colisiones y estado
@@ -16,6 +17,7 @@ class RacingGame extends FlameGame
   double maxFuel = 100;
   int obstaclesAvoided = 0;
   int coinsCollected = 0;
+  int coinBank = 0; // Monedas acumuladas persistentes para la tienda
   double maxSpeed = 0;
   double currentSpeed = 0;
   bool isGameOver = false;
@@ -90,6 +92,9 @@ class RacingGame extends FlameGame
       carSpritePath: selectedCarSprite,
     );
     world.add(playerCar);
+
+    // Cargar banco de monedas persistente
+    await _loadCoinBank();
 
     _startObstacleGeneration();
   }
@@ -274,6 +279,28 @@ class RacingGame extends FlameGame
 
   void incrementCoins(int amount) {
     coinsCollected += amount;
+    // Actualizar banco persistente y guardar
+    coinBank += amount;
+    _saveCoinBank();
+  }
+
+  Future<void> _loadCoinBank() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      coinBank = prefs.getInt('coin_bank') ?? 0;
+    } catch (e) {
+      debugPrint('❌ Error cargando coin_bank: $e');
+      coinBank = 0;
+    }
+  }
+
+  Future<void> _saveCoinBank() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('coin_bank', coinBank);
+    } catch (e) {
+      debugPrint('❌ Error guardando coin_bank: $e');
+    }
   }
 }
 
