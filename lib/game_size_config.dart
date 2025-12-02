@@ -77,7 +77,11 @@ class GameSizeConfig {
 
   /// Obstáculo 2:1 ajustado al carril (por defecto ocupa el 90% del carril)
   Vector2 getObstacleSizeFitLane2to1({double fill = 0.9}) {
-    final w = laneWidth * fill;
+    // En móviles (pantalla pequeña), aumentar el tamaño
+    final isMobile = screenSize.shortestSide < 600;
+    final adjustedFill = isMobile ? 1.3 : fill; // 30% más grande en móvil
+
+    final w = laneWidth * adjustedFill;
     final h = w / 2.0;
     return Vector2(w, h);
   }

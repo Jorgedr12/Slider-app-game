@@ -737,7 +737,17 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
             final w = (x + tile > rect.right) ? rect.right - x : tile;
             final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
             if (w <= 0 || h <= 0) continue;
-            sprite.render(canvas, position: Vector2(x, y), size: Vector2(w, h));
+
+            // Rotar el sprite 90 grados para que la carretera se vea horizontal
+            canvas.save();
+            canvas.translate(x + w / 2, y + h / 2);
+            canvas.rotate(-pi / 2);
+            sprite.render(
+              canvas,
+              position: Vector2(-h / 2, -w / 2),
+              size: Vector2(h, w),
+            );
+            canvas.restore();
           }
         }
       }
@@ -754,12 +764,33 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   ) {
     if (sprite != null) {
       const double tile = 512.0;
-      for (double x = rect.left; x < rect.right; x += tile) {
-        for (double y = rect.top; y < rect.bottom; y += tile) {
-          final w = (x + tile > rect.right) ? rect.right - x : tile;
-          final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
-          if (w <= 0 || h <= 0) continue;
-          sprite.render(canvas, position: Vector2(x, y), size: Vector2(w, h));
+      if (isVertical) {
+        for (double x = rect.left; x < rect.right; x += tile) {
+          for (double y = rect.top; y < rect.bottom; y += tile) {
+            final w = (x + tile > rect.right) ? rect.right - x : tile;
+            final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
+            if (w <= 0 || h <= 0) continue;
+            sprite.render(canvas, position: Vector2(x, y), size: Vector2(w, h));
+          }
+        }
+      } else {
+        // En horizontal, rotamos los sprites de los lados
+        for (double x = rect.left; x < rect.right; x += tile) {
+          for (double y = rect.top; y < rect.bottom; y += tile) {
+            final w = (x + tile > rect.right) ? rect.right - x : tile;
+            final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
+            if (w <= 0 || h <= 0) continue;
+
+            canvas.save();
+            canvas.translate(x + w / 2, y + h / 2);
+            canvas.rotate(-pi / 2);
+            sprite.render(
+              canvas,
+              position: Vector2(-h / 2, -w / 2),
+              size: Vector2(h, w),
+            );
+            canvas.restore();
+          }
         }
       }
     } else {
