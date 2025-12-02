@@ -58,7 +58,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       carGameSprite: 'cars/toyota_ae86.png',
       driverImagePath: 'assets/characters/takumi_fujiwara.png',
       driverName: 'TAKUMI FUJIWARA',
-      characterId: null, // Desbloqueado por defecto
+      characterId: null,
     ),
     CarData(
       name: 'JEEP CHEROKEE',
@@ -66,7 +66,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       carGameSprite: 'cars/jeep_cherokee.png',
       driverImagePath: 'assets/characters/pirata_culiacan.png',
       driverName: 'PIRATA DE CULIACÁN',
-      characterId: null, // Desbloqueado por defecto
+      characterId: null,
     ),
     CarData(
       name: 'MICROBUS RUTA 12',
@@ -74,7 +74,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       carGameSprite: 'cars/microbus.png',
       driverImagePath: 'assets/characters/el_vitor.png',
       driverName: 'EL VITOR',
-      characterId: null, // Desbloqueado por defecto
+      characterId: null,
     ),
     CarData(
       name: 'HOT DOGS MANOS PUERCAS',
@@ -82,7 +82,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       carGameSprite: 'cars/hotdog.png',
       driverImagePath: 'assets/characters/manos_puercas.png',
       driverName: 'EL MANOS PUERCAS',
-      characterId: 'character_manos_puercas', // Requiere compra
+      characterId: 'character_manos_puercas',
     ),
     CarData(
       name: 'TSURU 1992',
@@ -90,7 +90,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       carGameSprite: 'cars/weeb.png',
       driverImagePath: 'assets/characters/miguel.png',
       driverName: 'MIGUEL THE CREATOR',
-      characterId: 'character_da_baby', // Requiere compra
+      characterId: 'character_da_baby',
     ),
     CarData(
       name: 'DELOREAN',
@@ -98,7 +98,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       carGameSprite: 'cars/microbus.png',
       driverImagePath: 'assets/characters/cirett.png',
       driverName: 'CIRETT',
-      characterId: 'character_cirett', // Requiere compra
+      characterId: 'character_cirett',
     ),
   ];
 
@@ -238,6 +238,8 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
 
     final currentCar = _cars[_currentCarIndex];
     final isUnlocked = _isCarUnlocked(currentCar);
+    final orientation = MediaQuery.of(context).orientation;
+    final isPortrait = orientation == Orientation.portrait;
 
     return Scaffold(
       body: Container(
@@ -257,358 +259,721 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
             ),
 
             SafeArea(
-              child: Column(
+              child: isPortrait
+                  ? _buildPortraitLayout(currentCar, isUnlocked)
+                  : _buildLandscapeLayout(currentCar, isUnlocked),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPortraitLayout(CarData currentCar, bool isUnlocked) {
+    return Column(
+      children: [
+        // Botón de regreso
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.arrow_back, color: Colors.white, size: 32),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        // Título "SELECT A MODEL"
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          decoration: BoxDecoration(
+            color: Colors.red[700],
+            border: Border(
+              top: BorderSide(color: Colors.white, width: 3),
+              bottom: BorderSide(color: Colors.white, width: 3),
+            ),
+          ),
+          child: Text(
+            'SELECT A MODEL',
+            style: TextStyle(
+              fontFamily: 'PressStart',
+              fontSize: 28,
+              color: Colors.white,
+              letterSpacing: 3,
+              shadows: [
+                Shadow(
+                  offset: Offset(3, 3),
+                  color: Colors.black,
+                  blurRadius: 5,
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+
+        const SizedBox(height: 30),
+
+        // Panel con nombre del carro y conductor
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.85),
+            border: Border.all(
+              color: isUnlocked ? Colors.grey[600]! : Colors.red,
+              width: 3,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Botón de regreso
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.arrow_back,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Título "SELECT A MODEL"
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.red[700],
-                      border: Border(
-                        top: BorderSide(color: Colors.white, width: 3),
-                        bottom: BorderSide(color: Colors.white, width: 3),
-                      ),
-                    ),
+                  if (!isUnlocked) ...[
+                    Icon(Icons.lock, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
                     child: Text(
-                      'SELECT A MODEL',
+                      currentCar.name,
                       style: TextStyle(
                         fontFamily: 'PressStart',
-                        fontSize: 28,
-                        color: Colors.white,
-                        letterSpacing: 3,
+                        fontSize: 18,
+                        color: isUnlocked ? Colors.white : Colors.red,
+                        letterSpacing: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 15),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Stack(
+                    children: [
+                      Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white, width: 3),
+                          color: Colors.grey[900],
+                        ),
+                        child: ColorFiltered(
+                          colorFilter: isUnlocked
+                              ? ColorFilter.mode(
+                                  Colors.transparent,
+                                  BlendMode.multiply,
+                                )
+                              : ColorFilter.mode(
+                                  Colors.black.withOpacity(0.7),
+                                  BlendMode.darken,
+                                ),
+                          child: Image.asset(
+                            currentCar.driverImagePath,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      if (!isUnlocked)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.lock,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(width: 20),
+
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'DRIVER',
+                        style: TextStyle(
+                          fontFamily: 'PressStart',
+                          fontSize: 12,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        currentCar.driverName,
+                        style: TextStyle(
+                          fontFamily: 'PressStart',
+                          fontSize: 14,
+                          color: isUnlocked ? Colors.white : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const Spacer(),
+
+        // Carro con flechas de navegación
+        Container(
+          height: 250,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 400,
+                      height: 250,
+                      child: ColorFiltered(
+                        colorFilter: isUnlocked
+                            ? ColorFilter.mode(
+                                Colors.transparent,
+                                BlendMode.multiply,
+                              )
+                            : ColorFilter.mode(
+                                Colors.black.withOpacity(0.5),
+                                BlendMode.darken,
+                              ),
+                        child: Image.asset(
+                          currentCar.carImagePath,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    if (!isUnlocked)
+                      Icon(
+                        Icons.lock,
+                        color: Colors.red,
+                        size: 80,
                         shadows: [
                           Shadow(
                             offset: Offset(3, 3),
+                            color: Colors.black,
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+
+              Positioned.fill(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.arrow_back_ios,
+                        color: Colors.yellow,
+                        size: 60,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(2, 2),
                             color: Colors.black,
                             blurRadius: 5,
                           ),
                         ],
                       ),
-                      textAlign: TextAlign.center,
+                      onPressed: _previousCar,
+                      padding: const EdgeInsets.all(20),
                     ),
-                  ),
 
-                  const SizedBox(height: 30),
-
-                  // Panel con nombre del carro y conductor
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.85),
-                      border: Border.all(
-                        color: isUnlocked ? Colors.grey[600]! : Colors.red,
-                        width: 3,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (!isUnlocked) ...[
-                              Icon(Icons.lock, color: Colors.red, size: 20),
-                              const SizedBox(width: 8),
-                            ],
-                            Flexible(
-                              child: Text(
-                                currentCar.name,
-                                style: TextStyle(
-                                  fontFamily: 'PressStart',
-                                  fontSize: 18,
-                                  color: isUnlocked ? Colors.white : Colors.red,
-                                  letterSpacing: 1.5,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Stack(
-                              children: [
-                                Container(
-                                  width: 90,
-                                  height: 90,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 3,
-                                    ),
-                                    color: Colors.grey[900],
-                                  ),
-                                  child: ColorFiltered(
-                                    colorFilter: isUnlocked
-                                        ? ColorFilter.mode(
-                                            Colors.transparent,
-                                            BlendMode.multiply,
-                                          )
-                                        : ColorFilter.mode(
-                                            Colors.black.withOpacity(0.7),
-                                            BlendMode.darken,
-                                          ),
-                                    child: Image.asset(
-                                      currentCar.driverImagePath,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                if (!isUnlocked)
-                                  Positioned.fill(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.5),
-                                      ),
-                                      child: Center(
-                                        child: Icon(
-                                          Icons.lock,
-                                          color: Colors.red,
-                                          size: 40,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-
-                            const SizedBox(width: 20),
-
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'DRIVER',
-                                  style: TextStyle(
-                                    fontFamily: 'PressStart',
-                                    fontSize: 12,
-                                    color: Colors.grey[400],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  currentCar.driverName,
-                                  style: TextStyle(
-                                    fontFamily: 'PressStart',
-                                    fontSize: 14,
-                                    color: isUnlocked
-                                        ? Colors.white
-                                        : Colors.red,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // Carro con flechas de navegación
-                  Container(
-                    height: 250,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Center(
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 400,
-                                height: 250,
-                                child: ColorFiltered(
-                                  colorFilter: isUnlocked
-                                      ? ColorFilter.mode(
-                                          Colors.transparent,
-                                          BlendMode.multiply,
-                                        )
-                                      : ColorFilter.mode(
-                                          Colors.black.withOpacity(0.5),
-                                          BlendMode.darken,
-                                        ),
-                                  child: Image.asset(
-                                    currentCar.carImagePath,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              ),
-                              if (!isUnlocked)
-                                Icon(
-                                  Icons.lock,
-                                  color: Colors.red,
-                                  size: 80,
-                                  shadows: [
-                                    Shadow(
-                                      offset: Offset(3, 3),
-                                      color: Colors.black,
-                                      blurRadius: 10,
-                                    ),
-                                  ],
-                                ),
-                            ],
-                          ),
-                        ),
-
-                        Positioned.fill(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  Icons.arrow_back_ios,
-                                  color: Colors.yellow,
-                                  size: 60,
-                                  shadows: [
-                                    Shadow(
-                                      offset: Offset(2, 2),
-                                      color: Colors.black,
-                                      blurRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                onPressed: _previousCar,
-                                padding: const EdgeInsets.all(20),
-                              ),
-
-                              IconButton(
-                                icon: Icon(
-                                  Icons.arrow_forward_ios,
-                                  color: Colors.yellow,
-                                  size: 60,
-                                  shadows: [
-                                    Shadow(
-                                      offset: Offset(2, 2),
-                                      color: Colors.black,
-                                      blurRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                onPressed: _nextCar,
-                                padding: const EdgeInsets.all(20),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // Botón SELECT o LOCKED
-                  GestureDetector(
-                    onTap: _selectCar,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 50,
-                        vertical: 18,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isUnlocked ? Colors.green[700] : Colors.red[700],
-                        border: Border.all(color: Colors.white, width: 3),
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.6),
-                            blurRadius: 15,
-                            offset: Offset(0, 6),
+                    IconButton(
+                      icon: Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.yellow,
+                        size: 60,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(2, 2),
+                            color: Colors.black,
+                            blurRadius: 5,
                           ),
                         ],
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      onPressed: _nextCar,
+                      padding: const EdgeInsets.all(20),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const Spacer(),
+
+        // Botón SELECT o LOCKED
+        GestureDetector(
+          onTap: _selectCar,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 18),
+            decoration: BoxDecoration(
+              color: isUnlocked ? Colors.green[700] : Colors.red[700],
+              border: Border.all(color: Colors.white, width: 3),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.6),
+                  blurRadius: 15,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!isUnlocked) ...[
+                  Icon(Icons.lock, color: Colors.white, size: 24),
+                  const SizedBox(width: 10),
+                ],
+                Text(
+                  isUnlocked ? 'SELECT' : 'LOCKED',
+                  style: TextStyle(
+                    fontFamily: 'PressStart',
+                    fontSize: 24,
+                    color: Colors.white,
+                    letterSpacing: 3,
+                    shadows: [
+                      Shadow(
+                        offset: Offset(2, 2),
+                        color: Colors.black,
+                        blurRadius: 3,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 25),
+
+        // Indicadores de página
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_cars.length, (index) {
+            final isCurrentUnlocked = _isCarUnlocked(_cars[index]);
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _currentCarIndex == index
+                    ? (isCurrentUnlocked ? Colors.yellow : Colors.red)
+                    : (isCurrentUnlocked ? Colors.grey[600] : Colors.grey[800]),
+                border: Border.all(
+                  color: isCurrentUnlocked
+                      ? Colors.white
+                      : Colors.red.withOpacity(0.5),
+                  width: 2,
+                ),
+              ),
+            );
+          }),
+        ),
+
+        const SizedBox(height: 30),
+      ],
+    );
+  }
+
+  Widget _buildLandscapeLayout(CarData currentCar, bool isUnlocked) {
+    return Stack(
+      children: [
+        // Botón de regreso (top left)
+        Positioned(
+          top: 10,
+          left: 10,
+          child: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.white, size: 28),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+        ),
+
+        // Título "SELECT A MODEL" (top center)
+        Positioned(
+          top: 10,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.red[700],
+                border: Border.all(color: Colors.white, width: 2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'SELECT A MODEL',
+                style: TextStyle(
+                  fontFamily: 'PressStart',
+                  fontSize: 18,
+                  color: Colors.white,
+                  letterSpacing: 2,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(2, 2),
+                      color: Colors.black,
+                      blurRadius: 5,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Contenido principal dividido en dos columnas
+        Positioned(
+          left: 20,
+          right: 20,
+          top: 70,
+          bottom: 20,
+          child: Row(
+            children: [
+              // Columna izquierda: Info del carro y conductor
+              Expanded(
+                flex: 4,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Panel con nombre del carro y conductor
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.85),
+                        border: Border.all(
+                          color: isUnlocked ? Colors.grey[600]! : Colors.red,
+                          width: 3,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
                         children: [
-                          if (!isUnlocked) ...[
-                            Icon(Icons.lock, color: Colors.white, size: 24),
-                            const SizedBox(width: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (!isUnlocked) ...[
+                                Icon(Icons.lock, color: Colors.red, size: 16),
+                                const SizedBox(width: 6),
+                              ],
+                              Flexible(
+                                child: Text(
+                                  currentCar.name,
+                                  style: TextStyle(
+                                    fontFamily: 'PressStart',
+                                    fontSize: 12,
+                                    color: isUnlocked
+                                        ? Colors.white
+                                        : Colors.red,
+                                    letterSpacing: 1,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Stack(
+                                children: [
+                                  Container(
+                                    width: 70,
+                                    height: 70,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
+                                      color: Colors.grey[900],
+                                    ),
+                                    child: ColorFiltered(
+                                      colorFilter: isUnlocked
+                                          ? ColorFilter.mode(
+                                              Colors.transparent,
+                                              BlendMode.multiply,
+                                            )
+                                          : ColorFilter.mode(
+                                              Colors.black.withOpacity(0.7),
+                                              BlendMode.darken,
+                                            ),
+                                      child: Image.asset(
+                                        currentCar.driverImagePath,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                  if (!isUnlocked)
+                                    Positioned.fill(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.5),
+                                        ),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.lock,
+                                            color: Colors.red,
+                                            size: 30,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+
+                              const SizedBox(width: 15),
+
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'DRIVER',
+                                    style: TextStyle(
+                                      fontFamily: 'PressStart',
+                                      fontSize: 9,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  SizedBox(
+                                    width: 120,
+                                    child: Text(
+                                      currentCar.driverName,
+                                      style: TextStyle(
+                                        fontFamily: 'PressStart',
+                                        fontSize: 10,
+                                        color: isUnlocked
+                                            ? Colors.white
+                                            : Colors.red,
+                                      ),
+                                      maxLines: 2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Botón SELECT o LOCKED
+                    GestureDetector(
+                      onTap: _selectCar,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isUnlocked
+                              ? Colors.green[700]
+                              : Colors.red[700],
+                          border: Border.all(color: Colors.white, width: 2),
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.6),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
                           ],
-                          Text(
-                            isUnlocked ? 'SELECT' : 'LOCKED',
-                            style: TextStyle(
-                              fontFamily: 'PressStart',
-                              fontSize: 24,
-                              color: Colors.white,
-                              letterSpacing: 3,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!isUnlocked) ...[
+                              Icon(Icons.lock, color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
+                            ],
+                            Text(
+                              isUnlocked ? 'SELECT' : 'LOCKED',
+                              style: TextStyle(
+                                fontFamily: 'PressStart',
+                                fontSize: 16,
+                                color: Colors.white,
+                                letterSpacing: 2,
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(2, 2),
+                                    color: Colors.black,
+                                    blurRadius: 3,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    // Indicadores de página
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(_cars.length, (index) {
+                        final isCurrentUnlocked = _isCarUnlocked(_cars[index]);
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _currentCarIndex == index
+                                ? (isCurrentUnlocked
+                                      ? Colors.yellow
+                                      : Colors.red)
+                                : (isCurrentUnlocked
+                                      ? Colors.grey[600]
+                                      : Colors.grey[800]),
+                            border: Border.all(
+                              color: isCurrentUnlocked
+                                  ? Colors.white
+                                  : Colors.red.withOpacity(0.5),
+                              width: 1.5,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 20),
+
+              // Columna derecha: Carro con flechas
+              Expanded(
+                flex: 6,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Center(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 350,
+                            height: 200,
+                            child: ColorFiltered(
+                              colorFilter: isUnlocked
+                                  ? ColorFilter.mode(
+                                      Colors.transparent,
+                                      BlendMode.multiply,
+                                    )
+                                  : ColorFilter.mode(
+                                      Colors.black.withOpacity(0.5),
+                                      BlendMode.darken,
+                                    ),
+                              child: Image.asset(
+                                currentCar.carImagePath,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                          if (!isUnlocked)
+                            Icon(
+                              Icons.lock,
+                              color: Colors.red,
+                              size: 60,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(3, 3),
+                                  color: Colors.black,
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    Positioned.fill(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.arrow_back_ios,
+                              color: Colors.yellow,
+                              size: 45,
                               shadows: [
                                 Shadow(
                                   offset: Offset(2, 2),
                                   color: Colors.black,
-                                  blurRadius: 3,
+                                  blurRadius: 5,
                                 ),
                               ],
                             ),
+                            onPressed: _previousCar,
+                            padding: const EdgeInsets.all(15),
+                          ),
+
+                          IconButton(
+                            icon: Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.yellow,
+                              size: 45,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(2, 2),
+                                  color: Colors.black,
+                                  blurRadius: 5,
+                                ),
+                              ],
+                            ),
+                            onPressed: _nextCar,
+                            padding: const EdgeInsets.all(15),
                           ),
                         ],
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // Indicadores de página
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_cars.length, (index) {
-                      final isCurrentUnlocked = _isCarUnlocked(_cars[index]);
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 6),
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _currentCarIndex == index
-                              ? (isCurrentUnlocked ? Colors.yellow : Colors.red)
-                              : (isCurrentUnlocked
-                                    ? Colors.grey[600]
-                                    : Colors.grey[800]),
-                          border: Border.all(
-                            color: isCurrentUnlocked
-                                ? Colors.white
-                                : Colors.red.withOpacity(0.5),
-                            width: 2,
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-
-                  const SizedBox(height: 30),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
