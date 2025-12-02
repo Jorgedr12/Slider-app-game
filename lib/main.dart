@@ -7,6 +7,7 @@ import 'services/supabase_service.dart';
 import 'widgets/draggable_car.dart';
 import 'car_selection.dart';
 import 'shop.dart';
+import 'credits.dart';
 import 'track_selection.dart';
 import 'settings.dart';
 
@@ -43,6 +44,7 @@ class MyApp extends StatelessWidget {
         '/track_selection': (context) => const TrackSelectionScreen(),
         '/settings': (context) => const SettingsPage(),
         '/shop': (context) => Shop(),
+        '/credits': (context) => const CreditsScreen(),
       },
       onGenerateRoute: (settings) {
         // Manejar la ruta del juego con argumentos
