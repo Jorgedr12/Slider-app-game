@@ -53,7 +53,8 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     CarData(
       name: 'TOYOTA TRUENO GT-APEX (AE86)',
       carImagePath: 'assets/cars/toyota_select.png',
-      carGameSprite: 'assets/cars/toyota_select.png', // ⭐ Sprite para el juego
+      // Usar ruta relativa para Flame (sin 'assets/') y sprite del juego
+      carGameSprite: 'cars/toyota_ae86.png', // ⭐ Sprite para el juego
       driverImagePath: 'assets/characters/takumi_fujiwara.png',
       driverName: 'TAKUMI FUJIWARA',
     ),
