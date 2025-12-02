@@ -6,12 +6,12 @@ import 'package:flutter/services.dart';
 
 /// Configuración dinámica de tamaños según el dispositivo
 class GameSizeConfig {
-  // Tamaño base del carro (relación 2:1)
+  // Tamaño base del carro (relación objetivo 2:1, referencia 120x60)
   static const double carBaseWidth = 120.0;
   static const double carBaseHeight = 60.0;
 
-  // Multiplicador para ancho de carril
-  static const double laneWidthMultiplier = 1.1;
+  // Multiplicador para ancho de carril (más ancho para que el carro no ocupe tanto)
+  static const double laneWidthMultiplier = 1.3;
 
   // Límites de carriles
   static const int minLanes = 2;
@@ -37,9 +37,10 @@ class GameSizeConfig {
     // Dimensión relevante según orientación
     final screenDimension = isVertical ? screenSize.width : screenSize.height;
 
-    // El carro ocupa ~10-12% del ancho/alto de la pantalla
-    carWidth = (screenDimension * 0.11).clamp(80.0, 160.0);
-    carHeight = carWidth / 2.0; // Relación 2:1
+    // El carro ocupa ~10-12% del ancho/alto de la pantalla como lado corto
+    carWidth = (screenDimension * 0.11).clamp(60.0, 160.0);
+    // Ajuste: el carro era muy ancho; usamos alto = 2 * ancho
+    carHeight = carWidth * 2.0; // Relación 1:2 (ancho:alto)
 
     // Calcular ancho de carril (1.1 veces el ancho del carro)
     laneWidth = carWidth * laneWidthMultiplier;
@@ -72,5 +73,18 @@ class GameSizeConfig {
   Vector2 getObstacleSize(double baseWidth, double baseHeight) {
     final scale = carWidth / carBaseWidth;
     return Vector2(baseWidth * scale, baseHeight * scale);
+  }
+
+  /// Obstáculo 2:1 ajustado al carril (por defecto ocupa el 90% del carril)
+  Vector2 getObstacleSizeFitLane2to1({double fill = 0.9}) {
+    final w = laneWidth * fill;
+    final h = w / 2.0;
+    return Vector2(w, h);
+  }
+
+  /// Obstáculo 1:1 ajustado al carril (por defecto ocupa el 90% del carril)
+  Vector2 getObstacleSizeFitLane1to1({double fill = 0.9}) {
+    final side = laneWidth * fill;
+    return Vector2(side, side);
   }
 }

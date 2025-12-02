@@ -65,22 +65,14 @@ flutter:
   assets:
     - .env
     - assets/music/
-    - assets/logo/game_logo.png
-    - assets/background/menu_bg.png
-    - assets/background/car_select.png
-    - assets/cars/orange_car.png
-    - assets/cars/orange_car_h.png
-    - assets/cars/orange_car.png
-    - assets/cars/orange_car_h.png
-    - assets/cars/toyota_select.png
-    - assets/cars/jeep_select.png
-    - assets/cars/bus_select.png
-    - assets/characters/takumi_fujiwara.png
-    - assets/characters/pirata_culiacan.png
-    - assets/characters/el_vitor.png
-    - assets/dioramas/forest.png
-    - assets/dioramas/mountain.png
-    - assets/dioramas/cherry_blossom.png
+    # Directorios completos para evitar 404 en Web
+    - assets/cars/
+    - assets/escenarios/
+    - assets/obstacles/
+    - assets/background/
+    - assets/characters/
+    - assets/dioramas/
+    - assets/logo/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

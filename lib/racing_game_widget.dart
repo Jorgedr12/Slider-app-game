@@ -201,6 +201,26 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Vidas
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.favorite,
+                      color: Colors.redAccent,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_game.lives}/${_game.maxLives}',
+                      style: const TextStyle(
+                        fontFamily: 'PressStart',
+                        fontSize: 14,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
                 // Distancia
                 Row(
                   children: [

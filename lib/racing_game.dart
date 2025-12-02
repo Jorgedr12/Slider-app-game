@@ -1,4 +1,5 @@
 import 'package:flame/game.dart';
+import 'package:flame/flame.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,8 @@ class RacingGame extends FlameGame
   double maxSpeed = 0;
   double currentSpeed = 0;
   bool isGameOver = false;
+  int lives = 3;
+  int maxLives = 8;
 
   // Configuración
   bool isVertical = true;
@@ -57,6 +60,10 @@ class RacingGame extends FlameGame
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+
+    // Asegurar que Flame busque imágenes bajo la carpeta 'assets/'
+    // Debe terminar en '/': evita error "Prefix must be empty or end with a /"
+    Flame.images.prefix = 'assets/';
 
     // ⭐ NUEVO: Inicializar configuración de tamaños
     sizeConfig = GameSizeConfig(
@@ -230,6 +237,7 @@ class RacingGame extends FlameGame
     fuel = 100;
     obstaclesAvoided = 0;
     coinsCollected = 0;
+    lives = 3;
     maxSpeed = 0;
     currentSpeed = 0;
     gameSpeed = baseSpeed;
@@ -282,6 +290,17 @@ class RacingGame extends FlameGame
     // Actualizar banco persistente y guardar
     coinBank += amount;
     _saveCoinBank();
+  }
+
+  void loseLife(int amount) {
+    lives = (lives - amount).clamp(0, maxLives);
+    if (lives <= 0) {
+      _triggerGameOver();
+    }
+  }
+
+  void addLife(int amount) {
+    lives = (lives + amount).clamp(0, maxLives);
   }
 
   Future<void> _loadCoinBank() async {
@@ -450,8 +469,11 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
     final config = game.sizeConfig;
 
     if (isVertical) {
-      // ⭐ NUEVO: Usar getLaneCenterX de GameSizeConfig
-      position = Vector2(config.getLaneCenterX(currentLane), game.size.y - 150);
+      // Posicionar el carro pegado a la parte inferior de la pantalla
+      position = Vector2(
+        config.getLaneCenterX(currentLane),
+        game.size.y - (size.y / 2) - 20,
+      );
     } else {
       // ⭐ NUEVO: Usar getLaneCenterY de GameSizeConfig
       position = Vector2(150, config.getLaneCenterY(currentLane));
@@ -629,29 +651,28 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
     Color fallbackColor,
   ) {
     if (sprite != null) {
-      final spriteSize = isVertical
-          ? Vector2(rect.width, rect.width)
-          : Vector2(rect.height, rect.height);
-
+      const double tile = 512.0;
       if (isVertical) {
-        double y = -scrollOffset;
-        while (y < rect.bottom) {
-          sprite.render(
-            canvas,
-            position: Vector2(rect.left, y),
-            size: spriteSize,
-          );
-          y += spriteSize.y;
+        // Desplazamiento vertical
+        double startY = rect.top - (scrollOffset % tile);
+        for (double y = startY; y < rect.bottom; y += tile) {
+          for (double x = rect.left; x < rect.right; x += tile) {
+            final w = (x + tile > rect.right) ? rect.right - x : tile;
+            final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
+            if (w <= 0 || h <= 0) continue;
+            sprite.render(canvas, position: Vector2(x, y), size: Vector2(w, h));
+          }
         }
       } else {
-        double x = rect.width - scrollOffset;
-        while (x > rect.left - spriteSize.x) {
-          sprite.render(
-            canvas,
-            position: Vector2(x, rect.top),
-            size: spriteSize,
-          );
-          x -= spriteSize.x;
+        // Desplazamiento horizontal
+        double startX = rect.left - (scrollOffset % tile);
+        for (double x = startX; x < rect.right; x += tile) {
+          for (double y = rect.top; y < rect.bottom; y += tile) {
+            final w = (x + tile > rect.right) ? rect.right - x : tile;
+            final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
+            if (w <= 0 || h <= 0) continue;
+            sprite.render(canvas, position: Vector2(x, y), size: Vector2(w, h));
+          }
         }
       }
     } else {
@@ -666,11 +687,15 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
     Color fallbackColor,
   ) {
     if (sprite != null) {
-      sprite.render(
-        canvas,
-        position: Vector2(rect.left, rect.top),
-        size: Vector2(rect.width, rect.height),
-      );
+      const double tile = 512.0;
+      for (double x = rect.left; x < rect.right; x += tile) {
+        for (double y = rect.top; y < rect.bottom; y += tile) {
+          final w = (x + tile > rect.right) ? rect.right - x : tile;
+          final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
+          if (w <= 0 || h <= 0) continue;
+          sprite.render(canvas, position: Vector2(x, y), size: Vector2(w, h));
+        }
+      }
     } else {
       canvas.drawRect(rect, Paint()..color = fallbackColor);
     }
@@ -803,8 +828,8 @@ class ObstacleComponent extends PositionComponent
       obstacleSprite = null;
     }
 
-    // ⭐ NUEVO: Tamaño escalado según GameSizeConfig
-    final obstacleSize = game.sizeConfig.getObstacleSize(60, 80);
+    // ⭐ Ajustar al carril (obstáculo 2:1 que cabe en un carril)
+    final obstacleSize = game.sizeConfig.getObstacleSizeFitLane2to1(fill: 0.9);
     if (isVertical) {
       size = obstacleSize;
     } else {
@@ -892,20 +917,28 @@ class ObstacleComponent extends PositionComponent
 
   void _checkCollision() {
     final playerCar = game.playerCar;
-    final distance = position.distanceTo(playerCar.position);
-
-    // Colisión ajustada al tamaño del carro
-    final collisionRadius = game.sizeConfig.carWidth / 2 + 20;
-    if (distance < collisionRadius) {
+    // AABB basado en tamaño real
+    final Rect playerRect = Rect.fromCenter(
+      center: Offset(playerCar.position.x, playerCar.position.y),
+      width: playerCar.size.x,
+      height: playerCar.size.y,
+    );
+    final Rect obstacleRect = Rect.fromCenter(
+      center: Offset(position.x, position.y),
+      width: size.x,
+      height: size.y,
+    );
+    if (playerRect.overlaps(obstacleRect)) {
       game.fuel -= 10;
+      game.loseLife(1);
       removeFromParent();
     }
   }
 
   void updateOrientation(bool vertical) {
     isVertical = vertical;
-
-    final obstacleSize = game.sizeConfig.getObstacleSize(60, 80);
+    // Mantener el ajuste de obstáculo al carril también al rotar
+    final obstacleSize = game.sizeConfig.getObstacleSizeFitLane2to1(fill: 0.9);
     if (isVertical) {
       size = obstacleSize;
     } else {
@@ -1041,9 +1074,18 @@ class CoinComponent extends PositionComponent
 
   void _checkCollection() {
     final playerCar = game.playerCar;
-    final dist = position.distanceTo(playerCar.position);
-    final collectionRadius = game.sizeConfig.carWidth / 2 + 15;
-    if (dist < collectionRadius) {
+    // Usar AABB para concordar con tamaño visible; hacer la moneda levemente más permisiva
+    final Rect playerRect = Rect.fromCenter(
+      center: Offset(playerCar.position.x, playerCar.position.y),
+      width: playerCar.size.x * 0.9,
+      height: playerCar.size.y * 0.9,
+    );
+    final Rect coinRect = Rect.fromCenter(
+      center: Offset(position.x, position.y),
+      width: size.x,
+      height: size.y,
+    );
+    if (playerRect.overlaps(coinRect)) {
       game.incrementCoins(1);
       removeFromParent();
     }
