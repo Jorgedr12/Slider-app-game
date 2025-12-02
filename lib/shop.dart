@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class ShopItem {
   final String id;
@@ -38,6 +39,8 @@ class _ShopState extends State<Shop> {
   final PageController _pageController = PageController(viewportFraction: 0.85);
   int _currentPage = 0;
 
+  late AudioPlayer _audioPlayer;
+
   final List<ShopItem> _shopItems = [
     ShopItem(
       id: 'health_upgrade',
@@ -60,7 +63,7 @@ class _ShopState extends State<Shop> {
       name: 'EL MANOS PUERCAS',
       description: 'Fastest Truck in Sonora',
       basePrice: 100,
-      imagePath: 'assets/shop/manos_puercas.png',
+      imagePath: 'assets/characters/manos_puercas.png',
       type: ShopItemType.character,
     ),
     ShopItem(
@@ -68,7 +71,7 @@ class _ShopState extends State<Shop> {
       name: 'DA BABY',
       description: 'East Coast Menace',
       basePrice: 300,
-      imagePath: 'assets/shop/da_baby.png',
+      imagePath: 'assets/characters/da_baby.png',
       type: ShopItemType.character,
     ),
     ShopItem(
@@ -76,7 +79,7 @@ class _ShopState extends State<Shop> {
       name: 'CIRETT',
       description: 'The Big One',
       basePrice: 999,
-      imagePath: 'assets/shop/cirett.png',
+      imagePath: 'assets/characters/cirett.png',
       type: ShopItemType.character,
     ),
   ];
@@ -84,6 +87,8 @@ class _ShopState extends State<Shop> {
   @override
   void initState() {
     super.initState();
+    _audioPlayer = AudioPlayer();
+    _playShopMusic();
     _loadPlayerData();
     _pageController.addListener(() {
       int next = _pageController.page!.round();
@@ -95,8 +100,19 @@ class _ShopState extends State<Shop> {
     });
   }
 
+  Future<void> _playShopMusic() async {
+    try {
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer.setVolume(0.4);
+      await _audioPlayer.play(AssetSource('music/shop_theme.m4a'));
+    } catch (e) {
+      debugPrint('Error al reproducir música de la tienda: $e');
+    }
+  }
+
   @override
   void dispose() {
+    _audioPlayer.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -621,23 +637,18 @@ class _ShopState extends State<Shop> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Item image placeholder
+                  // Item image (real asset)
                   Container(
                     width: isPortrait ? 140 : 80,
                     height: isPortrait ? 140 : 80,
                     decoration: BoxDecoration(
-                      color: Colors.grey[800],
+                      color: Colors.grey[900],
                       border: Border.all(color: Colors.grey[600]!, width: 2),
                       borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      item.type == ShopItemType.healthUpgrade
-                          ? Icons.favorite
-                          : item.type == ShopItemType.fuelUpgrade
-                          ? Icons.local_gas_station
-                          : Icons.person,
-                      size: isPortrait ? 70 : 40,
-                      color: Colors.grey[600],
+                      image: DecorationImage(
+                        image: AssetImage(item.imagePath),
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
 
