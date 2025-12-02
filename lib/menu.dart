@@ -30,110 +30,150 @@ class _MenuState extends State<Menu> {
 
   @override
   void dispose() {
-    // _audioPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Image.asset(
-                'assets/background/menu_bg.png',
-                fit: BoxFit.cover,
+      body: OrientationBuilder(
+        builder: (context, orientation) {
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/background/menu_bg.png',
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
 
-            Positioned.fill(
-              child: Container(color: Colors.black.withOpacity(0.25)),
-            ),
-
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 10),
-
-                  Image.asset(
-                    'assets/logo/game_logo.png',
-                    height: 450,
-                    fit: BoxFit.contain,
-                  ),
-
-                  const Spacer(),
-
-                  Column(
-                    children: [
-                      // _menuText('PLAY', selected: true, onTap: () {
-                      //   _audioPlayer.stop(); // Detener música al salir
-                      //   Navigator.pushNamed(context, '/game');
-                      // }),
-                      _menuText(
-                        'PLAY',
-                        selected: true,
-                        onTap: () {
-                          _audioPlayer.stop();
-                          Navigator.pushNamed(
-                            context,
-                            '/car_selection',
-                          ); // ⭐ Cambiar aquí
-                        },
-                      ),
-                      const SizedBox(height: 1),
-                      _menuText(
-                        'SHOP',
-                        onTap: () {
-                          _audioPlayer.stop();
-                          Navigator.pushNamed(context, '/shop');
-                        },
-                      ),
-
-                      const SizedBox(height: 1),
-                      _menuText('RANKING', onTap: () {}),
-
-                      const SizedBox(height: 1),
-                      _menuText(
-                        'SETTINGS',
-                        onTap: () {
-                          _audioPlayer.stop();
-                          Navigator.pushNamed(context, '/settings');
-                        },
-                      ),
-
-                      const SizedBox(height: 1),
-                      _menuText(
-                        'CREDITS',
-                        onTap: () {
-                          _audioPlayer.stop();
-                          Navigator.pushNamed(context, '/credits');
-                        },
-                      ),
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 15),
-                    child: Text(
-                      '©1999 しげの秀一　©1999 講談社／JAM',
-                      style: TextStyle(
-                        fontFamily: 'PressStart',
-                        fontSize: 16,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                    ),
-                  ),
-                ],
+              Positioned.fill(
+                child: Container(color: Colors.black.withOpacity(0.25)),
               ),
-            ),
-          ],
-        ),
+
+              orientation == Orientation.portrait
+                  ? _buildPortraitLayout()
+                  : _buildLandscapeLayout(),
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildPortraitLayout() {
+    return Center(
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+
+          Image.asset(
+            'assets/logo/game_logo.png',
+            height: 450,
+            fit: BoxFit.contain,
+          ),
+
+          const Spacer(),
+
+          _buildMenuList(),
+
+          const Spacer(),
+
+          Padding(
+            padding: const EdgeInsets.only(bottom: 15),
+            child: Text(
+              '©1999 しげの秀一　©1999 講談社／JAM',
+              style: TextStyle(
+                fontFamily: 'PressStart',
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLandscapeLayout() {
+    return Center(
+      child: Row(
+        children: [
+          const SizedBox(width: 20),
+          Expanded(
+            child: Center(
+              child: Image.asset(
+                'assets/logo/game_logo.png',
+                height: 300,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildMenuList(),
+
+                const SizedBox(height: 20),
+
+                Text(
+                  '©1999 しげの秀一　©1999 講談社／JAM',
+                  style: TextStyle(
+                    fontFamily: 'PressStart',
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuList() {
+    return Column(
+      children: [
+        _menuText(
+          'PLAY',
+          selected: true,
+          onTap: () {
+            _audioPlayer.stop();
+            Navigator.pushNamed(context, '/car_selection');
+          },
+        ),
+        const SizedBox(height: 1),
+        _menuText(
+          'SHOP',
+          onTap: () {
+            _audioPlayer.stop();
+            Navigator.pushNamed(context, '/shop');
+          },
+        ),
+        const SizedBox(height: 1),
+        _menuText('RANKING', onTap: () {}),
+        const SizedBox(height: 1),
+        _menuText(
+          'SETTINGS',
+          onTap: () {
+            _audioPlayer.stop();
+            Navigator.pushNamed(context, '/settings');
+          },
+        ),
+        const SizedBox(height: 1),
+        _menuText(
+          'CREDITS',
+          onTap: () {
+            _audioPlayer.stop();
+            Navigator.pushNamed(context, '/credits');
+          },
+        ),
+      ],
     );
   }
 

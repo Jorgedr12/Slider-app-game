@@ -47,7 +47,7 @@ class _ShopState extends State<Shop> {
       name: 'HEALTH UPGRADE',
       description: 'Increase your health capacity',
       basePrice: 25,
-      imagePath: 'assets/shop/health_upgrade.png',
+      imagePath: 'assets/misc/wrench.png',
       type: ShopItemType.healthUpgrade,
     ),
     ShopItem(
@@ -55,7 +55,7 @@ class _ShopState extends State<Shop> {
       name: 'FUEL UPGRADE',
       description: 'Increase max fuel by 25',
       basePrice: 25,
-      imagePath: 'assets/shop/fuel_upgrade.png',
+      imagePath: 'assets/misc/gasoline.png',
       type: ShopItemType.fuelUpgrade,
     ),
     ShopItem(
@@ -68,10 +68,10 @@ class _ShopState extends State<Shop> {
     ),
     ShopItem(
       id: 'character_da_baby',
-      name: 'DA BABY',
-      description: 'East Coast Menace',
+      name: 'MIGUEL THE CREATOR',
+      description: 'West Coast Menace',
       basePrice: 300,
-      imagePath: 'assets/characters/da_baby.png',
+      imagePath: 'assets/characters/miguel.png',
       type: ShopItemType.character,
     ),
     ShopItem(
