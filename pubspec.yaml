@@ -67,6 +67,9 @@ flutter:
     - assets/music/
     - assets/cars/
     - assets/escenarios/
+    - assets/escenarios/montana/
+    - assets/escenarios/bosque/
+    - assets/escenarios/parque/
     - assets/obstacles/
     - assets/background/
     - assets/characters/

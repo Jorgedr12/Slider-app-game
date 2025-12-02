@@ -60,7 +60,7 @@ class TrackSelectionScreen extends StatefulWidget {
 
 class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
   int _currentTrackIndex = 0;
-  late CarData _selectedCar;
+  CarData? _selectedCar;
 
   final List<TrackData> _tracks = [
     TrackData(
@@ -126,6 +126,8 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
   }
 
   Future<void> _startRace() async {
+    if (_selectedCar == null) return;
+
     final prefs = await SharedPreferences.getInstance();
     final currentTrack = _tracks[_currentTrackIndex];
 
@@ -140,9 +142,9 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
       context,
       '/game',
       arguments: {
-        'carSprite': _selectedCar.carGameSprite,
+        'carSprite': _selectedCar!.carGameSprite,
         'trackFolder': currentTrack.scenarioFolder,
-        'trackName': "retro",
+        'trackName': currentTrack.name,
         'isVertical': true, // Por defecto vertical
       },
     );
@@ -150,6 +152,14 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Mostrar loading si _selectedCar aún no carga
+    if (_selectedCar == null) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.orange)),
+      );
+    }
+
     final orientation = MediaQuery.of(context).orientation;
     final isPortrait = orientation == Orientation.portrait;
     final currentTrack = _tracks[_currentTrackIndex];
@@ -201,7 +211,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                 child: Container(
                   width: 280,
                   child: Image.asset(
-                    _selectedCar.carImagePath,
+                    _selectedCar!.carImagePath,
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -260,7 +270,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                       child: Container(
                         width: 250,
                         child: Image.asset(
-                          _selectedCar.carImagePath,
+                          _selectedCar!.carImagePath,
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -387,8 +397,11 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                 border: Border.all(color: Colors.white, width: 2),
                 color: Colors.grey[900],
               ),
-              child: _selectedCar.driverImagePath.isNotEmpty
-                  ? Image.asset(_selectedCar.driverImagePath, fit: BoxFit.cover)
+              child: _selectedCar!.driverImagePath.isNotEmpty
+                  ? Image.asset(
+                      _selectedCar!.driverImagePath,
+                      fit: BoxFit.cover,
+                    )
                   : Icon(Icons.person, color: Colors.grey[600], size: 30),
             ),
             const SizedBox(width: 12),
@@ -397,7 +410,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _selectedCar.driverName,
+                    _selectedCar!.driverName,
                     style: TextStyle(
                       fontFamily: 'PressStart',
                       fontSize: 10,
@@ -407,7 +420,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _selectedCar.name,
+                    _selectedCar!.name,
                     style: TextStyle(
                       fontFamily: 'PressStart',
                       fontSize: 8,
