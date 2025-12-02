@@ -68,6 +68,7 @@ flutter:
     - assets/logo/game_logo.png
     - assets/background/menu_bg.png
     - assets/background/car_select.png
+    - assets/background/shop.png
     - assets/cars/orange_car.png
     - assets/cars/orange_car_h.png
     - assets/cars/orange_car.png
