@@ -65,6 +65,25 @@ class RacingGame extends FlameGame
     // Debe terminar en '/': evita error "Prefix must be empty or end with a /"
     Flame.images.prefix = 'assets/';
 
+    // ⭐ PRE-CARGA DE ASSETS
+    // Cargamos todo en memoria ahora para evitar lag durante el juego
+    try {
+      await Flame.images.loadAll([
+        selectedCarSprite,
+        'escenarios/$selectedTrack/road.png',
+        'escenarios/$selectedTrack/left.png',
+        'escenarios/$selectedTrack/right.png',
+        'obstacles/cone.png',
+        'obstacles/llantas.png',
+        'obstacles/valla.png',
+        'obstacles/coin.png',
+        'obstacles/fuel.png',
+      ]);
+      debugPrint('✅ Assets precargados correctamente');
+    } catch (e) {
+      debugPrint('⚠️ Error precargando assets: $e');
+    }
+
     // ⭐ NUEVO: Inicializar configuración de tamaños
     sizeConfig = GameSizeConfig(
       screenSize: Size(size.x, size.y),
@@ -880,7 +899,7 @@ class ObstacleComponent extends PositionComponent
   Future<void> onLoad() async {
     // Seleccionar tipo aleatorio
     type = types[Random().nextInt(types.length)];
-    
+
     await super.onLoad();
 
     final data = obstacleConfig[type]!;
