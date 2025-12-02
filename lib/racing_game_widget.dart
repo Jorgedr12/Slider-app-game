@@ -27,18 +27,29 @@ class RacingGameWidget extends StatefulWidget {
   State<RacingGameWidget> createState() => _RacingGameWidgetState();
 }
 
-class _RacingGameWidgetState extends State<RacingGameWidget> {
+class _RacingGameWidgetState extends State<RacingGameWidget>
+    with SingleTickerProviderStateMixin {
   late RacingGame _game;
   late AudioPlayer _gameAudioPlayer;
   bool _isPaused = false;
   bool _isGameOver = false;
   bool _isVertical = true;
+  late final AnimationController _hudTicker;
 
   @override
   void initState() {
     super.initState();
     _isVertical = widget.startVertical;
     _gameAudioPlayer = AudioPlayer();
+    // Refrescar el HUD periódicamente para reflejar cambios del juego
+    _hudTicker =
+        AnimationController(vsync: this, duration: const Duration(seconds: 1))
+          ..addListener(() {
+            if (!_isPaused) {
+              setState(() {});
+            }
+          })
+          ..repeat(period: const Duration(milliseconds: 100));
 
     // Inicializar el juego con los datos recibidos
     _game = RacingGame(
@@ -69,7 +80,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget> {
     try {
       await _gameAudioPlayer.setReleaseMode(ReleaseMode.loop);
       await _gameAudioPlayer.setVolume(0.5);
-      await _gameAudioPlayer.play(AssetSource('music/game_theme.m4a'));
+      await _gameAudioPlayer.play(AssetSource('music/race_theme_v1.m4a'));
     } catch (e) {
       debugPrint('Error al reproducir música del juego: $e');
     }
@@ -128,6 +139,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget> {
 
   @override
   void dispose() {
+    _hudTicker.dispose();
     _gameAudioPlayer.dispose();
     super.dispose();
   }
@@ -250,6 +262,27 @@ class _RacingGameWidgetState extends State<RacingGameWidget> {
             ),
             child: Column(
               children: [
+                // Monedas
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.monetization_on,
+                      color: Colors.amber,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_game.coinsCollected}',
+                      style: const TextStyle(
+                        fontFamily: 'PressStart',
+                        fontSize: 16,
+                        color: Colors.amber,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
                 Row(
                   children: [
                     Icon(

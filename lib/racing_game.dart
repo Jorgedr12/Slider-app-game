@@ -4,6 +4,7 @@ import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:slider_app/game_size_config.dart';
+import 'dart:math';
 
 /// Clase principal del juego de carreras
 /// Maneja la lógica del juego, física, colisiones y estado
@@ -14,6 +15,7 @@ class RacingGame extends FlameGame
   double fuel = 100;
   double maxFuel = 100;
   int obstaclesAvoided = 0;
+  int coinsCollected = 0;
   double maxSpeed = 0;
   double currentSpeed = 0;
   bool isGameOver = false;
@@ -42,6 +44,7 @@ class RacingGame extends FlameGame
 
   // Para detección de swipe
   Vector2? _panStartPosition;
+  int _obstacleSpawnCount = 0;
 
   RacingGame({
     this.isVertical = true,
@@ -188,6 +191,10 @@ class RacingGame extends FlameGame
         onTick: () {
           if (!paused && !isGameOver) {
             _spawnObstacle();
+            _obstacleSpawnCount++;
+            if (_obstacleSpawnCount % 4 == 0) {
+              _spawnCoin();
+            }
           }
         },
       ),
@@ -202,6 +209,11 @@ class RacingGame extends FlameGame
     world.add(obstacle);
   }
 
+  void _spawnCoin() {
+    final coin = CoinComponent(isVertical: isVertical, gameSpeed: gameSpeed);
+    world.add(coin);
+  }
+
   void _triggerGameOver() {
     isGameOver = true;
     pauseEngine();
@@ -212,13 +224,18 @@ class RacingGame extends FlameGame
     distance = 0;
     fuel = 100;
     obstaclesAvoided = 0;
+    coinsCollected = 0;
     maxSpeed = 0;
     currentSpeed = 0;
     gameSpeed = baseSpeed;
     isGameOver = false;
+    _obstacleSpawnCount = 0;
 
     world.children.whereType<ObstacleComponent>().forEach((obs) {
       obs.removeFromParent();
+    });
+    world.children.whereType<CoinComponent>().forEach((c) {
+      c.removeFromParent();
     });
 
     playerCar.resetPosition();
@@ -253,6 +270,10 @@ class RacingGame extends FlameGame
 
   void incrementObstaclesAvoided() {
     obstaclesAvoided++;
+  }
+
+  void incrementCoins(int amount) {
+    coinsCollected += amount;
   }
 }
 
@@ -863,5 +884,147 @@ class ObstacleComponent extends PositionComponent
     } else {
       size = Vector2(obstacleSize.y, obstacleSize.x);
     }
+  }
+}
+
+/// Componente de moneda
+class CoinComponent extends PositionComponent
+    with HasGameReference<RacingGame> {
+  bool isVertical;
+  double gameSpeed;
+  int lane;
+
+  Sprite? coinSprite;
+  final Paint fallbackPaint = Paint()..color = Colors.amber;
+
+  CoinComponent({required this.isVertical, required this.gameSpeed}) : lane = 0;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    lane =
+        DateTime.now().millisecondsSinceEpoch % game.sizeConfig.numberOfLanes;
+
+    // Evitar colisión inicial con obstáculos recién generados (mismo carril y zona de spawn)
+    final obstacles = game.world.children.whereType<ObstacleComponent>();
+    final occupiedLanes = <int>{};
+    final gameSize = game.size;
+    for (final o in obstacles) {
+      if (o.isVertical == isVertical) {
+        if (isVertical) {
+          // Obstáculos en zona alta (spawn) si su y todavía < 120
+          if (o.position.y < 120) occupiedLanes.add(o.lane);
+        } else {
+          // Obstáculos en zona derecha (spawn) si su x > ancho - 120
+          if (o.position.x > gameSize.x - 120) occupiedLanes.add(o.lane);
+        }
+      }
+    }
+    if (occupiedLanes.contains(lane)) {
+      final allLanes = List<int>.generate(
+        game.sizeConfig.numberOfLanes,
+        (i) => i,
+      );
+      final free = allLanes.where((l) => !occupiedLanes.contains(l)).toList();
+      if (free.isNotEmpty) {
+        lane = free[Random().nextInt(free.length)];
+      } else {
+        // No hay carril libre en la zona de spawn, cancelar moneda
+        removeFromParent();
+        return;
+      }
+    }
+
+    try {
+      coinSprite = await Sprite.load('obstacles/coin.png');
+    } catch (e) {
+      debugPrint('❌ Error cargando sprite de moneda: $e');
+      coinSprite = null;
+    }
+
+    final coinSize = game.sizeConfig.getObstacleSize(40, 40);
+    size = Vector2(coinSize.x, coinSize.y);
+    anchor = Anchor.center;
+    _setInitialPosition(game.size);
+  }
+
+  void _setInitialPosition(Vector2 gameSize) {
+    final config = game.sizeConfig;
+    if (isVertical) {
+      // Separar la moneda de la zona de aparición de obstáculos (más arriba)
+      const double separation = 220; // píxeles extra de separación
+      position = Vector2(config.getLaneCenterX(lane), -size.y - separation);
+    } else {
+      // Separar la moneda hacia la derecha para evitar proximidad inmediata
+      const double separation = 220; // píxeles extra de separación
+      position = Vector2(
+        gameSize.x + size.x + separation,
+        config.getLaneCenterY(lane),
+      );
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    if (coinSprite != null) {
+      coinSprite!.render(
+        canvas,
+        position: Vector2.zero(),
+        size: size,
+        anchor: Anchor.center,
+      );
+    } else {
+      final rect = Rect.fromCenter(
+        center: Offset.zero,
+        width: size.x,
+        height: size.y,
+      );
+      canvas.drawOval(rect, fallbackPaint);
+      canvas.drawOval(
+        rect,
+        Paint()
+          ..color = Colors.black
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    final gameSize = game.size;
+    if (isVertical) {
+      position.y += gameSpeed * dt;
+      if (position.y > gameSize.y + 80) {
+        removeFromParent();
+        return;
+      }
+    } else {
+      position.x -= gameSpeed * dt;
+      if (position.x < -80) {
+        removeFromParent();
+        return;
+      }
+    }
+
+    _checkCollection();
+  }
+
+  void _checkCollection() {
+    final playerCar = game.playerCar;
+    final dist = position.distanceTo(playerCar.position);
+    final collectionRadius = game.sizeConfig.carWidth / 2 + 15;
+    if (dist < collectionRadius) {
+      game.incrementCoins(1);
+      removeFromParent();
+    }
+  }
+
+  void updateOrientation(bool vertical) {
+    isVertical = vertical;
+    final coinSize = game.sizeConfig.getObstacleSize(40, 40);
+    size = Vector2(coinSize.x, coinSize.y);
   }
 }
