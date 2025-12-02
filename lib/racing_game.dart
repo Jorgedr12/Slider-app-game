@@ -48,8 +48,6 @@ class RacingGame extends FlameGame
   Function()? onPauseRequest;
   Function()? onGameOver;
 
-  // Para detección de swipe
-  Vector2? _panStartPosition;
   int _obstacleSpawnCount = 0;
 
   RacingGame({
@@ -113,7 +111,7 @@ class RacingGame extends FlameGame
 
     if (!paused && !isGameOver) {
       distance += gameSpeed * dt / 10;
-      fuel -= 8 * dt;
+      fuel -= 2.5 * dt; // Consumo reducido (antes 8)
       gameSpeed += speedIncrement * dt;
       currentSpeed = gameSpeed / 2.78;
 
@@ -162,51 +160,45 @@ class RacingGame extends FlameGame
 
   @override
   void onPanStart(DragStartInfo info) {
-    _panStartPosition = info.eventPosition.global;
+    // No longer needed
   }
 
   @override
   void onPanUpdate(DragUpdateInfo info) {
-    if (_panStartPosition == null || paused || isGameOver) return;
+    if (paused || isGameOver) return;
 
-    final currentPosition = info.eventPosition.global;
-    final delta = currentPosition - _panStartPosition!;
+    final delta = info.delta.global;
 
     if (isVertical) {
-      if (delta.x < -50) {
-        playerCar.moveLeft();
-        _panStartPosition = currentPosition;
-      } else if (delta.x > 50) {
-        playerCar.moveRight();
-        _panStartPosition = currentPosition;
-      }
+      playerCar.position.x += delta.x;
     } else {
-      if (delta.y < -50) {
-        playerCar.moveLeft();
-        _panStartPosition = currentPosition;
-      } else if (delta.y > 50) {
-        playerCar.moveRight();
-        _panStartPosition = currentPosition;
-      }
+      playerCar.position.y += delta.y;
     }
   }
 
   @override
   void onPanEnd(DragEndInfo info) {
-    _panStartPosition = null;
+    // No longer needed
   }
 
   void _startObstacleGeneration() {
     world.add(
       TimerComponent(
-        period: 2.0,
+        period: 1.2, // Más rápido (antes 2.0)
         repeat: true,
         onTick: () {
           if (!paused && !isGameOver) {
             _spawnObstacle();
             _obstacleSpawnCount++;
+
+            // Monedas cada 4 obstáculos
             if (_obstacleSpawnCount % 4 == 0) {
               _spawnCoin();
+            }
+
+            // Gasolina cada 10 obstáculos
+            if (_obstacleSpawnCount % 10 == 0) {
+              _spawnFuel();
             }
           }
         },
@@ -225,6 +217,14 @@ class RacingGame extends FlameGame
   void _spawnCoin() {
     final coin = CoinComponent(isVertical: isVertical, gameSpeed: gameSpeed);
     world.add(coin);
+  }
+
+  void _spawnFuel() {
+    final fuelItem = FuelComponent(
+      isVertical: isVertical,
+      gameSpeed: gameSpeed,
+    );
+    world.add(fuelItem);
   }
 
   void _triggerGameOver() {
@@ -250,6 +250,9 @@ class RacingGame extends FlameGame
     });
     world.children.whereType<CoinComponent>().forEach((c) {
       c.removeFromParent();
+    });
+    world.children.whereType<FuelComponent>().forEach((f) {
+      f.removeFromParent();
     });
 
     playerCar.resetPosition();
@@ -335,12 +338,8 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
   // Paint para fallback
   final Paint fallbackPaint = Paint()..color = Colors.orange;
 
-  int currentLane = 1;
-  int get totalLanes => game.sizeConfig.numberOfLanes; // ⭐ Dinámico
-
-  double laneChangeSpeed = 500.0;
-  Vector2 targetPosition = Vector2.zero();
-  bool isChangingLane = false;
+  // Movimiento libre
+  double speed = 400.0;
 
   bool movingLeft = false;
   bool movingRight = false;
@@ -370,7 +369,6 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
     anchor = Anchor.center;
 
     _updatePosition();
-    targetPosition = position.clone();
 
     debugPrint('🚗 Carro creado - Tamaño: ${size.x.toInt()}x${size.y.toInt()}');
   }
@@ -436,24 +434,35 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
   void update(double dt) {
     super.update(dt);
 
-    if (isChangingLane) {
-      final direction = targetPosition - position;
-      final distance = direction.length;
-
-      if (distance < 5) {
-        position = targetPosition.clone();
-        isChangingLane = false;
+    // Movimiento continuo con teclado
+    if (movingLeft) {
+      if (isVertical) {
+        position.x -= speed * dt;
       } else {
-        direction.normalize();
-        position += direction * laneChangeSpeed * dt;
+        position.y -= speed * dt;
+      }
+    }
+    if (movingRight) {
+      if (isVertical) {
+        position.x += speed * dt;
+      } else {
+        position.y += speed * dt;
       }
     }
 
-    if (movingLeft && !isChangingLane) {
-      moveLeft();
-    }
-    if (movingRight && !isChangingLane) {
-      moveRight();
+    _clampPosition();
+  }
+
+  void _clampPosition() {
+    final config = game.sizeConfig;
+    if (isVertical) {
+      final minX = config.sideWidth + size.x / 2;
+      final maxX = config.sideWidth + config.roadWidth - size.x / 2;
+      position.x = position.x.clamp(minX, maxX);
+    } else {
+      final minY = config.sideWidth + size.y / 2;
+      final maxY = config.sideWidth + config.roadWidth - size.y / 2;
+      position.y = position.y.clamp(minY, maxY);
     }
   }
 
@@ -475,68 +484,35 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
     }
   }
 
-  void moveLeft() {
-    if (currentLane > 0 && !isChangingLane) {
-      currentLane--;
-      _updateTargetPosition();
-      isChangingLane = true;
-    }
-  }
-
-  void moveRight() {
-    if (currentLane < totalLanes - 1 && !isChangingLane) {
-      currentLane++;
-      _updateTargetPosition();
-      isChangingLane = true;
-    }
-  }
-
   void _updatePosition() {
     final config = game.sizeConfig;
 
     if (isVertical) {
-      // Posicionar el carro pegado a la parte inferior de la pantalla
+      // Posicionar el carro centrado en la carretera
       position = Vector2(
-        config.getLaneCenterX(currentLane),
+        config.sideWidth + config.roadWidth / 2,
         game.size.y - (size.y / 2) - 20,
       );
     } else {
-      // ⭐ NUEVO: Usar getLaneCenterY de GameSizeConfig
-      position = Vector2(150, config.getLaneCenterY(currentLane));
-    }
-  }
-
-  void _updateTargetPosition() {
-    final config = game.sizeConfig;
-
-    if (isVertical) {
-      targetPosition = Vector2(config.getLaneCenterX(currentLane), position.y);
-    } else {
-      targetPosition = Vector2(position.x, config.getLaneCenterY(currentLane));
+      position = Vector2(150, config.sideWidth + config.roadWidth / 2);
     }
   }
 
   void updateOrientation(bool vertical) {
     isVertical = vertical;
 
-    // ⭐ NUEVO: Actualizar tamaño según nueva configuración
+    // Actualizar tamaño según nueva configuración
     if (isVertical) {
       size = Vector2(game.sizeConfig.carWidth, game.sizeConfig.carHeight);
     } else {
       size = Vector2(game.sizeConfig.carHeight, game.sizeConfig.carWidth);
     }
 
-    currentLane = totalLanes ~/ 2; // Carril central
     _updatePosition();
-    targetPosition = position.clone();
-    isChangingLane = false;
   }
 
   void resetPosition() {
-    currentLane = totalLanes ~/ 2; // Carril central
     _updatePosition();
-    targetPosition = position.clone();
-    isChangingLane = false;
     movingLeft = false;
     movingRight = false;
   }
@@ -825,7 +801,7 @@ class ObstacleComponent extends PositionComponent
     with HasGameReference<RacingGame> {
   bool isVertical;
   double gameSpeed;
-  int lane;
+  // int lane; // Eliminado: ya no usamos carriles fijos
   bool hasPassed = false;
 
   // Sprite que puede ser null
@@ -834,16 +810,11 @@ class ObstacleComponent extends PositionComponent
   // Paint para fallback
   final Paint fallbackPaint = Paint()..color = Colors.red.withOpacity(0.8);
 
-  ObstacleComponent({required this.isVertical, required this.gameSpeed})
-    : lane = 0;
+  ObstacleComponent({required this.isVertical, required this.gameSpeed});
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    // ⭐ NUEVO: Carril aleatorio según número de carriles disponibles
-    lane =
-        DateTime.now().millisecondsSinceEpoch % game.sizeConfig.numberOfLanes;
 
     try {
       obstacleSprite = await Sprite.load('obstacles/cone.png');
@@ -872,12 +843,7 @@ class ObstacleComponent extends PositionComponent
 
     if (obstacleSprite != null) {
       // Renderizar sprite
-      obstacleSprite!.render(
-        canvas,
-        position: Vector2.zero(),
-        size: size,
-        // anchor: Anchor.topLeft, // Por defecto
-      );
+      obstacleSprite!.render(canvas, position: Vector2.zero(), size: size);
     } else {
       // Renderizar fallback (rectángulo rojo)
       final rect = Rect.fromLTWH(0, 0, size.x, size.y);
@@ -924,11 +890,24 @@ class ObstacleComponent extends PositionComponent
 
   void _setInitialPosition(Vector2 gameSize) {
     final config = game.sizeConfig;
+    final random = Random();
+
+    // Posición aleatoria continua dentro de la carretera
+    final double roadStart = config.sideWidth;
+    final double roadWidth = config.roadWidth;
+
+    // Margen para que no aparezca cortado en los bordes
+    final double margin = isVertical ? size.x / 2 : size.y / 2;
+
+    final double minPos = roadStart + margin;
+    final double maxPos = roadStart + roadWidth - margin;
+
+    final double randomPos = minPos + random.nextDouble() * (maxPos - minPos);
 
     if (isVertical) {
-      position = Vector2(config.getLaneCenterX(lane), -size.y);
+      position = Vector2(randomPos, -size.y);
     } else {
-      position = Vector2(gameSize.x + size.x, config.getLaneCenterY(lane));
+      position = Vector2(gameSize.x + size.x, randomPos);
     }
   }
 
@@ -1009,34 +988,48 @@ class CoinComponent extends PositionComponent
     lane =
         DateTime.now().millisecondsSinceEpoch % game.sizeConfig.numberOfLanes;
 
-    // Evitar colisión inicial con obstáculos recién generados (mismo carril y zona de spawn)
+    // Evitar colisión inicial con obstáculos recién generados
     final obstacles = game.world.children.whereType<ObstacleComponent>();
-    final occupiedLanes = <int>{};
-    final gameSize = game.size;
-    for (final o in obstacles) {
-      if (o.isVertical == isVertical) {
-        if (isVertical) {
-          // Obstáculos en zona alta (spawn) si su y todavía < 120
-          if (o.position.y < 120) occupiedLanes.add(o.lane);
-        } else {
-          // Obstáculos en zona derecha (spawn) si su x > ancho - 120
-          if (o.position.x > gameSize.x - 120) occupiedLanes.add(o.lane);
+    bool tooClose = false;
+
+    // Posición temporal para verificar
+    final config = game.sizeConfig;
+    final double roadStart = config.sideWidth;
+    final double roadWidth = config.roadWidth;
+    final double margin = isVertical ? size.x / 2 : size.y / 2;
+    final double minPos = roadStart + margin;
+    final double maxPos = roadStart + roadWidth - margin;
+
+    // Intentar encontrar una posición libre (máximo 5 intentos)
+    for (int i = 0; i < 5; i++) {
+      final randomPos = minPos + Random().nextDouble() * (maxPos - minPos);
+      Vector2 candidatePos;
+
+      if (isVertical) {
+        candidatePos = Vector2(randomPos, -size.y - 220);
+      } else {
+        candidatePos = Vector2(game.size.x + size.x + 220, randomPos);
+      }
+
+      // Verificar distancia con obstáculos cercanos
+      tooClose = false;
+      for (final o in obstacles) {
+        if (o.position.distanceTo(candidatePos) < 150) {
+          tooClose = true;
+          break;
         }
       }
-    }
-    if (occupiedLanes.contains(lane)) {
-      final allLanes = List<int>.generate(
-        game.sizeConfig.numberOfLanes,
-        (i) => i,
-      );
-      final free = allLanes.where((l) => !occupiedLanes.contains(l)).toList();
-      if (free.isNotEmpty) {
-        lane = free[Random().nextInt(free.length)];
-      } else {
-        // No hay carril libre en la zona de spawn, cancelar moneda
-        removeFromParent();
-        return;
+
+      if (!tooClose) {
+        position = candidatePos;
+        break;
       }
+    }
+
+    if (tooClose) {
+      // Si no encontramos sitio, no spawneamos
+      removeFromParent();
+      return;
     }
 
     try {
@@ -1049,24 +1042,10 @@ class CoinComponent extends PositionComponent
     final coinSize = game.sizeConfig.getObstacleSize(40, 40);
     size = Vector2(coinSize.x, coinSize.y);
     anchor = Anchor.center;
-    _setInitialPosition(game.size);
+    // La posición ya se estableció arriba
   }
 
-  void _setInitialPosition(Vector2 gameSize) {
-    final config = game.sizeConfig;
-    if (isVertical) {
-      // Separar la moneda de la zona de aparición de obstáculos (más arriba)
-      const double separation = 220; // píxeles extra de separación
-      position = Vector2(config.getLaneCenterX(lane), -size.y - separation);
-    } else {
-      // Separar la moneda hacia la derecha para evitar proximidad inmediata
-      const double separation = 220; // píxeles extra de separación
-      position = Vector2(
-        gameSize.x + size.x + separation,
-        config.getLaneCenterY(lane),
-      );
-    }
-  }
+  // Eliminado _setInitialPosition ya que se hace en onLoad con lógica de colisión
 
   @override
   void render(Canvas canvas) {
@@ -1156,5 +1135,144 @@ class CoinComponent extends PositionComponent
     isVertical = vertical;
     final coinSize = game.sizeConfig.getObstacleSize(40, 40);
     size = Vector2(coinSize.x, coinSize.y);
+  }
+}
+
+/// Componente de gasolina
+class FuelComponent extends PositionComponent
+    with HasGameReference<RacingGame> {
+  bool isVertical;
+  double gameSpeed;
+
+  Sprite? fuelSprite;
+  final Paint fallbackPaint = Paint()..color = Colors.green;
+
+  FuelComponent({required this.isVertical, required this.gameSpeed});
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    // Lógica de posición similar a CoinComponent
+    final config = game.sizeConfig;
+    final double roadStart = config.sideWidth;
+    final double roadWidth = config.roadWidth;
+    final double margin = isVertical ? size.x / 2 : size.y / 2;
+    final double minPos = roadStart + margin;
+    final double maxPos = roadStart + roadWidth - margin;
+
+    final randomPos = minPos + Random().nextDouble() * (maxPos - minPos);
+
+    if (isVertical) {
+      position = Vector2(randomPos, -size.y - 300); // Más separado
+    } else {
+      position = Vector2(game.size.x + size.x + 300, randomPos);
+    }
+
+    try {
+      // Intentar cargar sprite, si no existe usará fallback
+      fuelSprite = await Sprite.load('obstacles/fuel.png');
+    } catch (e) {
+      debugPrint('⚠️ No se encontró sprite de gasolina, usando fallback');
+      fuelSprite = null;
+    }
+
+    final itemSize = game.sizeConfig.getObstacleSize(40, 40);
+    size = Vector2(itemSize.x, itemSize.y);
+    anchor = Anchor.center;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    if (fuelSprite != null) {
+      fuelSprite!.render(canvas, position: Vector2.zero(), size: size);
+    } else {
+      final rect = Rect.fromLTWH(0, 0, size.x, size.y);
+      // Dibujar un bidón simple
+      canvas.drawRect(rect, fallbackPaint);
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = Colors.black
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+      // Letra F
+      const textStyle = TextStyle(
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      );
+      final textSpan = TextSpan(text: 'F', style: textStyle);
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(
+          (size.x - textPainter.width) / 2,
+          (size.y - textPainter.height) / 2,
+        ),
+      );
+    }
+
+    if (game.debugMode) {
+      final hitbox = getHitboxRectLocal();
+      canvas.drawRect(
+        hitbox,
+        Paint()
+          ..color = Colors.green.withOpacity(0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+  }
+
+  Rect getHitboxRect() {
+    final localRect = getHitboxRectLocal();
+    return localRect.shift(position.toOffset() - (size / 2).toOffset());
+  }
+
+  Rect getHitboxRectLocal() {
+    return Rect.fromCenter(
+      center: Offset(size.x / 2, size.y / 2),
+      width: size.x,
+      height: size.y,
+    );
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    final gameSize = game.size;
+    if (isVertical) {
+      position.y += gameSpeed * dt;
+      if (position.y > gameSize.y + 80) {
+        removeFromParent();
+        return;
+      }
+    } else {
+      position.x -= gameSpeed * dt;
+      if (position.x < -80) {
+        removeFromParent();
+        return;
+      }
+    }
+
+    _checkCollection();
+  }
+
+  void _checkCollection() {
+    final playerCar = game.playerCar;
+    final Rect playerRect = playerCar.getHitboxRect();
+    final Rect fuelRect = getHitboxRect();
+
+    if (playerRect.overlaps(fuelRect)) {
+      game.addFuel(20); // Recargar 20 de gasolina
+      removeFromParent();
+    }
   }
 }
