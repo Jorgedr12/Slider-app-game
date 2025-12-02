@@ -27,6 +27,7 @@ class RacingGame extends FlameGame
 
   // Configuración
   bool isVertical = true;
+  bool debugMode = true; // ⭐ MODO DEBUG ACTIVADO
   String selectedCarSprite = 'cars/orange_car.png';
   String selectedTrack = 'akina';
   String currentTrackName = 'MONTE AKINA';
@@ -384,15 +385,11 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
         canvas,
         position: Vector2.zero(),
         size: size,
-        anchor: Anchor.center,
+        // anchor: Anchor.topLeft, // Por defecto es topLeft, que llena el componente desde 0,0
       );
     } else {
       // Renderizar fallback (rectángulo naranja)
-      final rect = Rect.fromCenter(
-        center: Offset.zero,
-        width: size.x,
-        height: size.y,
-      );
+      final rect = Rect.fromLTWH(0, 0, size.x, size.y);
       canvas.drawRect(rect, fallbackPaint);
 
       // Opcional: Dibujar borde negro para que se vea mejor
@@ -404,6 +401,35 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
           ..strokeWidth = 2,
       );
     }
+
+    // ⭐ DEBUG: Dibujar hitbox
+    if (game.debugMode) {
+      final hitbox = getHitboxRectLocal();
+      canvas.drawRect(
+        hitbox,
+        Paint()
+          ..color = Colors.red.withOpacity(0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+  }
+
+  /// Obtener el Rect de colisión (Hitbox) en coordenadas globales
+  Rect getHitboxRect() {
+    final localRect = getHitboxRectLocal();
+    // Ajustar por la posición del componente (que es el centro) y el offset del centro
+    return localRect.shift(position.toOffset() - (size / 2).toOffset());
+  }
+
+  /// Obtener el Rect de colisión en coordenadas locales (centrado en size/2)
+  Rect getHitboxRectLocal() {
+    // Hitbox centrada en el componente
+    return Rect.fromCenter(
+      center: Offset(size.x / 2, size.y / 2),
+      width: size.x * 0.8,
+      height: size.y * 0.9,
+    );
   }
 
   @override
@@ -850,15 +876,11 @@ class ObstacleComponent extends PositionComponent
         canvas,
         position: Vector2.zero(),
         size: size,
-        anchor: Anchor.center,
+        // anchor: Anchor.topLeft, // Por defecto
       );
     } else {
       // Renderizar fallback (rectángulo rojo)
-      final rect = Rect.fromCenter(
-        center: Offset.zero,
-        width: size.x,
-        height: size.y,
-      );
+      final rect = Rect.fromLTWH(0, 0, size.x, size.y);
       canvas.drawRect(rect, fallbackPaint);
 
       // Borde negro
@@ -870,6 +892,34 @@ class ObstacleComponent extends PositionComponent
           ..strokeWidth = 2,
       );
     }
+
+    // ⭐ DEBUG: Dibujar hitbox
+    if (game.debugMode) {
+      final hitbox = getHitboxRectLocal();
+      canvas.drawRect(
+        hitbox,
+        Paint()
+          ..color = Colors.blue.withOpacity(0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+  }
+
+  /// Obtener el Rect de colisión (Hitbox) en coordenadas globales
+  Rect getHitboxRect() {
+    final localRect = getHitboxRectLocal();
+    return localRect.shift(position.toOffset() - (size / 2).toOffset());
+  }
+
+  /// Obtener el Rect de colisión en coordenadas locales
+  Rect getHitboxRectLocal() {
+    // Hitbox ajustada (80% del tamaño visual), centrada en el componente
+    return Rect.fromCenter(
+      center: Offset(size.x / 2, size.y / 2),
+      width: size.x * 0.8,
+      height: size.y * 0.8,
+    );
   }
 
   void _setInitialPosition(Vector2 gameSize) {
@@ -917,17 +967,11 @@ class ObstacleComponent extends PositionComponent
 
   void _checkCollision() {
     final playerCar = game.playerCar;
-    // AABB basado en tamaño real
-    final Rect playerRect = Rect.fromCenter(
-      center: Offset(playerCar.position.x, playerCar.position.y),
-      width: playerCar.size.x,
-      height: playerCar.size.y,
-    );
-    final Rect obstacleRect = Rect.fromCenter(
-      center: Offset(position.x, position.y),
-      width: size.x,
-      height: size.y,
-    );
+
+    // Usar las hitboxes ajustadas
+    final Rect playerRect = playerCar.getHitboxRect();
+    final Rect obstacleRect = getHitboxRect();
+
     if (playerRect.overlaps(obstacleRect)) {
       game.fuel -= 10;
       game.loseLife(1);
@@ -1032,14 +1076,10 @@ class CoinComponent extends PositionComponent
         canvas,
         position: Vector2.zero(),
         size: size,
-        anchor: Anchor.center,
+        // anchor: Anchor.topLeft,
       );
     } else {
-      final rect = Rect.fromCenter(
-        center: Offset.zero,
-        width: size.x,
-        height: size.y,
-      );
+      final rect = Rect.fromLTWH(0, 0, size.x, size.y);
       canvas.drawOval(rect, fallbackPaint);
       canvas.drawOval(
         rect,
@@ -1049,6 +1089,33 @@ class CoinComponent extends PositionComponent
           ..strokeWidth = 2,
       );
     }
+
+    // ⭐ DEBUG: Dibujar hitbox
+    if (game.debugMode) {
+      final hitbox = getHitboxRectLocal();
+      canvas.drawRect(
+        hitbox,
+        Paint()
+          ..color = Colors.purple.withOpacity(0.5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+  }
+
+  /// Obtener el Rect de colisión (Hitbox) en coordenadas globales
+  Rect getHitboxRect() {
+    final localRect = getHitboxRectLocal();
+    return localRect.shift(position.toOffset() - (size / 2).toOffset());
+  }
+
+  /// Obtener el Rect de colisión en coordenadas locales
+  Rect getHitboxRectLocal() {
+    return Rect.fromCenter(
+      center: Offset(size.x / 2, size.y / 2),
+      width: size.x,
+      height: size.y,
+    );
   }
 
   @override
@@ -1074,17 +1141,11 @@ class CoinComponent extends PositionComponent
 
   void _checkCollection() {
     final playerCar = game.playerCar;
-    // Usar AABB para concordar con tamaño visible; hacer la moneda levemente más permisiva
-    final Rect playerRect = Rect.fromCenter(
-      center: Offset(playerCar.position.x, playerCar.position.y),
-      width: playerCar.size.x * 0.9,
-      height: playerCar.size.y * 0.9,
-    );
-    final Rect coinRect = Rect.fromCenter(
-      center: Offset(position.x, position.y),
-      width: size.x,
-      height: size.y,
-    );
+
+    // Usar la hitbox del jugador
+    final Rect playerRect = playerCar.getHitboxRect();
+    final Rect coinRect = getHitboxRect();
+
     if (playerRect.overlaps(coinRect)) {
       game.incrementCoins(1);
       removeFromParent();

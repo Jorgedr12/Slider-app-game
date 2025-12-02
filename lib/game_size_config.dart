@@ -37,12 +37,12 @@ class GameSizeConfig {
     // Dimensión relevante según orientación
     final screenDimension = isVertical ? screenSize.width : screenSize.height;
 
-    // El carro ocupa ~10-12% del ancho/alto de la pantalla como lado corto
-    carWidth = (screenDimension * 0.11).clamp(60.0, 160.0);
+    // El carro ocupa ~9% del ancho/alto de la pantalla como lado corto
+    carWidth = (screenDimension * 0.09).clamp(50.0, 140.0);
     // Ajuste: el carro era muy ancho; usamos alto = 2 * ancho
     carHeight = carWidth * 2.0; // Relación 1:2 (ancho:alto)
 
-    // Calcular ancho de carril (1.1 veces el ancho del carro)
+    // Calcular ancho de carril (1.3 veces el ancho del carro)
     laneWidth = carWidth * laneWidthMultiplier;
 
     // Calcular número de carriles que caben
