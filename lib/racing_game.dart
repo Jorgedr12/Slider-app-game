@@ -29,7 +29,7 @@ class RacingGame extends FlameGame
   bool isVertical = true;
   bool debugMode = true; // ⭐ MODO DEBUG ACTIVADO
   String selectedCarSprite = 'cars/orange_car.png';
-  String selectedTrack = 'akina';
+  String selectedTrack = 'montana';
   String currentTrackName = 'MONTE AKINA';
 
   // Velocidad del juego
@@ -76,8 +76,8 @@ class RacingGame extends FlameGame
         'obstacles/cone.png',
         'obstacles/llantas.png',
         'obstacles/valla.png',
-        'obstacles/coin.png',
-        'obstacles/fuel.png',
+        // 'obstacles/coin.png', // No existen aún
+        // 'obstacles/fuel.png', // No existen aún
       ]);
       debugPrint('✅ Assets precargados correctamente');
     } catch (e) {
@@ -637,7 +637,10 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
       _renderHorizontalTrack(canvas, gameSize);
     }
 
-    _drawLaneMarkings(canvas, gameSize);
+    // Solo dibujar líneas procedimentales si no hay sprite de carretera cargado
+    if (roadSprite == null) {
+      _drawLaneMarkings(canvas, gameSize);
+    }
   }
 
   void _renderVerticalTrack(Canvas canvas, Vector2 gameSize) {
