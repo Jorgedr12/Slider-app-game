@@ -19,133 +19,266 @@ class PauseMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
       color: Colors.black.withOpacity(0.85),
       child: Center(
-        child: Container(
-          padding: const EdgeInsets.all(30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Título "PAUSA"
-              Text(
-                'PAUSA',
-                style: TextStyle(
-                  fontFamily: 'PixelifySans',
-                  fontSize: 60,
-                  letterSpacing: 4,
-                  color: Colors.orangeAccent,
-                  shadows: [
-                    const Shadow(offset: Offset(-2, -2), color: Colors.black),
-                    const Shadow(offset: Offset(2, -2), color: Colors.black),
-                    const Shadow(offset: Offset(-2, 2), color: Colors.black),
-                    const Shadow(offset: Offset(2, 2), color: Colors.black),
-                    Shadow(
-                      offset: const Offset(0, 0),
-                      blurRadius: 10,
-                      color: Colors.orange.withOpacity(0.5),
-                    ),
-                  ],
-                ),
-              ),
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(30),
+            child: isLandscape
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Columna Izquierda: Título y Decoración
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'PAUSA',
+                              style: TextStyle(
+                                fontFamily: 'PixelifySans',
+                                fontSize: 60,
+                                letterSpacing: 4,
+                                color: Colors.orangeAccent,
+                                shadows: [
+                                  const Shadow(
+                                    offset: Offset(-2, -2),
+                                    color: Colors.black,
+                                  ),
+                                  const Shadow(
+                                    offset: Offset(2, -2),
+                                    color: Colors.black,
+                                  ),
+                                  const Shadow(
+                                    offset: Offset(-2, 2),
+                                    color: Colors.black,
+                                  ),
+                                  const Shadow(
+                                    offset: Offset(2, 2),
+                                    color: Colors.black,
+                                  ),
+                                  Shadow(
+                                    offset: const Offset(0, 0),
+                                    blurRadius: 10,
+                                    color: Colors.orange.withOpacity(0.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Container(
+                            width: 200,
+                            height: 3,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.orangeAccent,
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Presiona ESC para reanudar',
+                            style: TextStyle(
+                              fontFamily: 'PressStart',
+                              fontSize: 10,
+                              color: Colors.white.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 50),
+                      // Columna Derecha: Botones
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildMenuButton(
+                            context,
+                            icon: Icons.play_arrow,
+                            text: 'REANUDAR',
+                            color: Colors.green,
+                            onTap: onResume,
+                          ),
+                          const SizedBox(height: 15),
+                          _buildMenuButton(
+                            context,
+                            icon: Icons.restart_alt,
+                            text: 'REINICIAR',
+                            color: Colors.blue[300]!,
+                            onTap: () {
+                              _showConfirmDialog(
+                                context,
+                                title: '¿REINICIAR PARTIDA?',
+                                message: 'Perderás todo el progreso actual',
+                                confirmText: 'REINICIAR',
+                                onConfirm: onRestart,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 15),
+                          _buildMenuButton(
+                            context,
+                            icon: Icons.exit_to_app,
+                            text: 'SALIR',
+                            color: Colors.red[300]!,
+                            onTap: () {
+                              _showConfirmDialog(
+                                context,
+                                title: '¿SALIR AL MENÚ?',
+                                message: 'Perderás todo el progreso actual',
+                                confirmText: 'SALIR',
+                                onConfirm: onExit,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Título "PAUSA"
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'PAUSA',
+                          style: TextStyle(
+                            fontFamily: 'PixelifySans',
+                            fontSize: 60,
+                            letterSpacing: 4,
+                            color: Colors.orangeAccent,
+                            shadows: [
+                              const Shadow(
+                                offset: Offset(-2, -2),
+                                color: Colors.black,
+                              ),
+                              const Shadow(
+                                offset: Offset(2, -2),
+                                color: Colors.black,
+                              ),
+                              const Shadow(
+                                offset: Offset(-2, 2),
+                                color: Colors.black,
+                              ),
+                              const Shadow(
+                                offset: Offset(2, 2),
+                                color: Colors.black,
+                              ),
+                              Shadow(
+                                offset: const Offset(0, 0),
+                                blurRadius: 10,
+                                color: Colors.orange.withOpacity(0.5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
-              const SizedBox(height: 50),
+                      const SizedBox(height: 30), // Reducido de 50
+                      // Línea decorativa superior
+                      Container(
+                        width: 300,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              Colors.orangeAccent,
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
 
-              // Línea decorativa superior
-              Container(
-                width: 300,
-                height: 3,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.orangeAccent,
-                      Colors.transparent,
+                      const SizedBox(height: 30), // Reducido de 40
+                      // Botón Reanudar
+                      _buildMenuButton(
+                        context,
+                        icon: Icons.play_arrow,
+                        text: 'REANUDAR',
+                        color: Colors.green,
+                        onTap: onResume,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Botón Reiniciar
+                      _buildMenuButton(
+                        context,
+                        icon: Icons.restart_alt,
+                        text: 'REINICIAR',
+                        color: Colors.blue[300]!,
+                        onTap: () {
+                          _showConfirmDialog(
+                            context,
+                            title: '¿REINICIAR PARTIDA?',
+                            message: 'Perderás todo el progreso actual',
+                            confirmText: 'REINICIAR',
+                            onConfirm: onRestart,
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Botón Salir
+                      _buildMenuButton(
+                        context,
+                        icon: Icons.exit_to_app,
+                        text: 'SALIR AL MENÚ',
+                        color: Colors.red[300]!,
+                        onTap: () {
+                          _showConfirmDialog(
+                            context,
+                            title: '¿SALIR AL MENÚ?',
+                            message: 'Perderás todo el progreso actual',
+                            confirmText: 'SALIR',
+                            onConfirm: onExit,
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 30), // Reducido de 40
+                      // Línea decorativa inferior
+                      Container(
+                        width: 300,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              Colors.orangeAccent,
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20), // Reducido de 30
+                      // Texto de ayuda
+                      Text(
+                        'Presiona ESC para reanudar',
+                        style: TextStyle(
+                          fontFamily: 'PressStart',
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.6),
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // Botón Reanudar
-              _buildMenuButton(
-                context,
-                icon: Icons.play_arrow,
-                text: 'REANUDAR',
-                color: Colors.green,
-                onTap: onResume,
-              ),
-
-              const SizedBox(height: 20),
-
-              // Botón Reiniciar
-              _buildMenuButton(
-                context,
-                icon: Icons.restart_alt,
-                text: 'REINICIAR',
-                color: Colors.blue[300]!,
-                onTap: () {
-                  _showConfirmDialog(
-                    context,
-                    title: '¿REINICIAR PARTIDA?',
-                    message: 'Perderás todo el progreso actual',
-                    confirmText: 'REINICIAR',
-                    onConfirm: onRestart,
-                  );
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              // Botón Salir
-              _buildMenuButton(
-                context,
-                icon: Icons.exit_to_app,
-                text: 'SALIR AL MENÚ',
-                color: Colors.red[300]!,
-                onTap: () {
-                  _showConfirmDialog(
-                    context,
-                    title: '¿SALIR AL MENÚ?',
-                    message: 'Perderás todo el progreso actual',
-                    confirmText: 'SALIR',
-                    onConfirm: onExit,
-                  );
-                },
-              ),
-
-              const SizedBox(height: 40),
-
-              // Línea decorativa inferior
-              Container(
-                width: 300,
-                height: 3,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      Colors.orangeAccent,
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // Texto de ayuda
-              Text(
-                'Presiona ESC para reanudar',
-                style: TextStyle(
-                  fontFamily: 'PressStart',
-                  fontSize: 12,
-                  color: Colors.white.withOpacity(0.6),
-                ),
-              ),
-            ],
           ),
         ),
       ),

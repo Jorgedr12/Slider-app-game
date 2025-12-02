@@ -411,79 +411,161 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   }
 
   Widget _buildGameOverScreen() {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
       color: Colors.black.withOpacity(0.9),
       child: Center(
-        child: Container(
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0a0a0a),
-            border: Border.all(color: Colors.red, width: 4),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.red.withOpacity(0.5),
-                blurRadius: 30,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Título Game Over
-              Text(
-                'GAME OVER',
-                style: TextStyle(
-                  fontFamily: 'PixelifySans',
-                  fontSize: 50,
-                  color: Colors.red,
-                  letterSpacing: 4,
-                  shadows: [
-                    Shadow(color: Colors.red.withOpacity(0.8), blurRadius: 20),
-                  ],
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(40),
+            margin: const EdgeInsets.all(20), // Margen para móviles
+            decoration: BoxDecoration(
+              color: const Color(0xFF0a0a0a),
+              border: Border.all(color: Colors.red, width: 4),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.5),
+                  blurRadius: 30,
+                  spreadRadius: 5,
                 ),
-              ),
+              ],
+            ),
+            child: isLandscape
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Izquierda: Título y Stats
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'GAME OVER',
+                              style: TextStyle(
+                                fontFamily: 'PixelifySans',
+                                fontSize: 50,
+                                color: Colors.red,
+                                letterSpacing: 4,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.red.withOpacity(0.8),
+                                    blurRadius: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildFinalStat(
+                            'DISTANCIA',
+                            '${_game.distance.toStringAsFixed(0)} m',
+                          ),
+                          const SizedBox(height: 10),
+                          _buildFinalStat(
+                            'OBSTÁCULOS',
+                            '${_game.obstaclesAvoided}',
+                          ),
+                          const SizedBox(height: 10),
+                          _buildFinalStat(
+                            'VEL. MÁXIMA',
+                            '${_game.maxSpeed.toStringAsFixed(0)} km/h',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 50),
+                      // Derecha: Botones
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildGameOverButton(
+                            text: 'REINTENTAR',
+                            icon: Icons.restart_alt,
+                            color: Colors.green,
+                            onTap: _restartGame,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildGameOverButton(
+                            text: 'MENÚ',
+                            icon: Icons.home,
+                            color: Colors.blue,
+                            onTap: _exitToMenu,
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Título Game Over
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'GAME OVER',
+                          style: TextStyle(
+                            fontFamily: 'PixelifySans',
+                            fontSize: 50,
+                            color: Colors.red,
+                            letterSpacing: 4,
+                            shadows: [
+                              Shadow(
+                                color: Colors.red.withOpacity(0.8),
+                                blurRadius: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
-              const SizedBox(height: 30),
+                      const SizedBox(height: 30),
 
-              // Estadísticas finales
-              _buildFinalStat(
-                'DISTANCIA',
-                '${_game.distance.toStringAsFixed(0)} m',
-              ),
-              const SizedBox(height: 15),
-              _buildFinalStat('OBSTÁCULOS', '${_game.obstaclesAvoided}'),
-              const SizedBox(height: 15),
-              _buildFinalStat(
-                'VEL. MÁXIMA',
-                '${_game.maxSpeed.toStringAsFixed(0)} km/h',
-              ),
+                      // Estadísticas finales
+                      _buildFinalStat(
+                        'DISTANCIA',
+                        '${_game.distance.toStringAsFixed(0)} m',
+                      ),
+                      const SizedBox(height: 15),
+                      _buildFinalStat(
+                        'OBSTÁCULOS',
+                        '${_game.obstaclesAvoided}',
+                      ),
+                      const SizedBox(height: 15),
+                      _buildFinalStat(
+                        'VEL. MÁXIMA',
+                        '${_game.maxSpeed.toStringAsFixed(0)} km/h',
+                      ),
 
-              const SizedBox(height: 40),
+                      const SizedBox(height: 40),
 
-              // Botones
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildGameOverButton(
-                    text: 'REINTENTAR',
-                    icon: Icons.restart_alt,
-                    color: Colors.green,
-                    onTap: _restartGame,
+                      // Botones
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 20,
+                        runSpacing: 20,
+                        children: [
+                          _buildGameOverButton(
+                            text: 'REINTENTAR',
+                            icon: Icons.restart_alt,
+                            color: Colors.green,
+                            onTap: _restartGame,
+                          ),
+                          _buildGameOverButton(
+                            text: 'MENÚ',
+                            icon: Icons.home,
+                            color: Colors.blue,
+                            onTap: _exitToMenu,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 20),
-                  _buildGameOverButton(
-                    text: 'MENÚ',
-                    icon: Icons.home,
-                    color: Colors.blue,
-                    onTap: _exitToMenu,
-                  ),
-                ],
-              ),
-            ],
           ),
         ),
       ),
