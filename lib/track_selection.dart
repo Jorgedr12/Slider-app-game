@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:slider_app/car_selection.dart';
 
 class TrackData {
   final String name;
   final String location;
   final String description;
   final String dioramaPath;
+  final String
+  scenarioFolder; // ⭐ NUEVO: Nombre de la carpeta en assets/escenarios/
   final double length;
   final String recordHolder;
   final String recordTime;
@@ -15,10 +18,37 @@ class TrackData {
     required this.location,
     required this.description,
     required this.dioramaPath,
+    required this.scenarioFolder, // ⭐ NUEVO
     required this.length,
     required this.recordHolder,
     required this.recordTime,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'location': location,
+      'description': description,
+      'dioramaPath': dioramaPath,
+      'scenarioFolder': scenarioFolder,
+      'length': length,
+      'recordHolder': recordHolder,
+      'recordTime': recordTime,
+    };
+  }
+
+  factory TrackData.fromMap(Map<String, dynamic> map) {
+    return TrackData(
+      name: map['name'] ?? '',
+      location: map['location'] ?? '',
+      description: map['description'] ?? '',
+      dioramaPath: map['dioramaPath'] ?? '',
+      scenarioFolder: map['scenarioFolder'] ?? 'retro',
+      length: map['length']?.toDouble() ?? 0.0,
+      recordHolder: map['recordHolder'] ?? '',
+      recordTime: map['recordTime'] ?? '',
+    );
+  }
 }
 
 class TrackSelectionScreen extends StatefulWidget {
@@ -30,10 +60,7 @@ class TrackSelectionScreen extends StatefulWidget {
 
 class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
   int _currentTrackIndex = 0;
-  String _selectedCarName = '';
-  String _selectedCarImage = '';
-  String _selectedDriverName = '';
-  String _selectedDriverImage = '';
+  late CarData _selectedCar;
 
   final List<TrackData> _tracks = [
     TrackData(
@@ -41,6 +68,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
       location: 'TAKASAKI, JAPAN',
       description: 'The legendary SpeedStars mountain',
       dioramaPath: 'assets/dioramas/mountain.png',
+      scenarioFolder: 'montana', // ⭐ assets/escenarios/montana/
       length: 8.5,
       recordHolder: 'TAKUMI F.',
       recordTime: '2:35.12',
@@ -50,6 +78,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
       location: 'OHIO, UNITED STATES',
       description: 'Dangerous zigzag curves',
       dioramaPath: 'assets/dioramas/forest.png',
+      scenarioFolder: 'bosque', // ⭐ assets/escenarios/bosque/
       length: 7.2,
       recordHolder: 'KEISUKE T.',
       recordTime: '2:48.33',
@@ -59,6 +88,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
       location: 'UENO, JAPAN',
       description: 'Beautiful scenic nightrace',
       dioramaPath: 'assets/dioramas/cherry_blossom.png',
+      scenarioFolder: 'parque', // ⭐ assets/escenarios/parque/
       length: 6.8,
       recordHolder: 'TAKESHI N.',
       recordTime: '2:52.47',
@@ -73,21 +103,49 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
 
   Future<void> _loadSelectedCar() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Cargar el CarData completo
+    final carMap = {
+      'name': prefs.getString('selected_car_name') ?? 'TOYOTA AE86',
+      'carImagePath':
+          prefs.getString('selected_car_carImagePath') ??
+          'assets/cars/toyota_select.png',
+      'carGameSprite':
+          prefs.getString('selected_car_carGameSprite') ??
+          'cars/toyota_ae86.png',
+      'driverImagePath':
+          prefs.getString('selected_car_driverImagePath') ??
+          'assets/characters/takumi_fujiwara.png',
+      'driverName':
+          prefs.getString('selected_car_driverName') ?? 'TAKUMI FUJIWARA',
+    };
+
     setState(() {
-      _selectedCarName = prefs.getString('selected_car_name') ?? 'TOYOTA AE86';
-      _selectedCarImage =
-          prefs.getString('selected_car_image') ??
-          'assets/cars/toyota_select.png';
-      _selectedDriverName =
-          prefs.getString('selected_driver_name') ?? 'TAKUMI FUJIWARA';
-      _selectedDriverImage =
-          prefs.getString('selected_driver_image') ??
-          'assets/characters/takumi_fujiwara.png';
+      _selectedCar = CarData.fromMap(carMap);
     });
   }
 
-  void _startRace() {
-    Navigator.pushNamed(context, '/game');
+  Future<void> _startRace() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentTrack = _tracks[_currentTrackIndex];
+
+    // Guardar datos de la pista
+    final trackMap = currentTrack.toMap();
+    trackMap.forEach((key, value) async {
+      await prefs.setString('selected_track_$key', value.toString());
+    });
+
+    // Navegar al juego pasando los datos
+    Navigator.pushNamed(
+      context,
+      '/game',
+      arguments: {
+        'carSprite': _selectedCar.carGameSprite,
+        'trackFolder': currentTrack.scenarioFolder,
+        'trackName': "retro",
+        'isVertical': true, // Por defecto vertical
+      },
+    );
   }
 
   @override
@@ -142,7 +200,10 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
               child: Center(
                 child: Container(
                   width: 280,
-                  child: Image.asset(_selectedCarImage, fit: BoxFit.contain),
+                  child: Image.asset(
+                    _selectedCar.carImagePath,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
@@ -199,7 +260,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                       child: Container(
                         width: 250,
                         child: Image.asset(
-                          _selectedCarImage,
+                          _selectedCar.carImagePath,
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -326,8 +387,8 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                 border: Border.all(color: Colors.white, width: 2),
                 color: Colors.grey[900],
               ),
-              child: _selectedDriverImage.isNotEmpty
-                  ? Image.asset(_selectedDriverImage, fit: BoxFit.cover)
+              child: _selectedCar.driverImagePath.isNotEmpty
+                  ? Image.asset(_selectedCar.driverImagePath, fit: BoxFit.cover)
                   : Icon(Icons.person, color: Colors.grey[600], size: 30),
             ),
             const SizedBox(width: 12),
@@ -336,7 +397,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _selectedDriverName,
+                    _selectedCar.driverName,
                     style: TextStyle(
                       fontFamily: 'PressStart',
                       fontSize: 10,
@@ -346,7 +407,7 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _selectedCarName,
+                    _selectedCar.name,
                     style: TextStyle(
                       fontFamily: 'PressStart',
                       fontSize: 8,

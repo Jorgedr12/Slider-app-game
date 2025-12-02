@@ -3,16 +3,40 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class CarData {
   final String name;
-  final String carImagePath;
+  final String carImagePath; // Para la pantalla de selección
+  final String carGameSprite; // ⭐ NUEVO: Para el juego
   final String driverImagePath;
   final String driverName;
 
   CarData({
     required this.name,
     required this.carImagePath,
+    required this.carGameSprite, // ⭐ NUEVO
     required this.driverImagePath,
     required this.driverName,
   });
+
+  // Convertir a Map para SharedPreferences
+  Map<String, String> toMap() {
+    return {
+      'name': name,
+      'carImagePath': carImagePath,
+      'carGameSprite': carGameSprite,
+      'driverImagePath': driverImagePath,
+      'driverName': driverName,
+    };
+  }
+
+  // Crear desde Map
+  factory CarData.fromMap(Map<String, dynamic> map) {
+    return CarData(
+      name: map['name'] ?? '',
+      carImagePath: map['carImagePath'] ?? '',
+      carGameSprite: map['carGameSprite'] ?? '',
+      driverImagePath: map['driverImagePath'] ?? '',
+      driverName: map['driverName'] ?? '',
+    );
+  }
 }
 
 class CarSelectionScreen extends StatefulWidget {
@@ -29,18 +53,21 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     CarData(
       name: 'TOYOTA TRUENO GT-APEX (AE86)',
       carImagePath: 'assets/cars/toyota_select.png',
+      carGameSprite: 'assets/cars/toyota_select.png', // ⭐ Sprite para el juego
       driverImagePath: 'assets/characters/takumi_fujiwara.png',
       driverName: 'TAKUMI FUJIWARA',
     ),
     CarData(
       name: 'JEEP CHEROKEE',
       carImagePath: 'assets/cars/jeep_select.png',
+      carGameSprite: 'cars/jeep_cherokee.png', // ⭐ Sprite para el juego
       driverImagePath: 'assets/characters/pirata_culiacan.png',
       driverName: 'PIRATA DE CULIACÁN',
     ),
     CarData(
       name: 'MICROBUS RUTA 12',
       carImagePath: 'assets/cars/bus_select.png',
+      carGameSprite: 'cars/microbus.png', // ⭐ Sprite para el juego
       driverImagePath: 'assets/characters/el_vitor.png',
       driverName: 'EL VITOR',
     ),
@@ -62,11 +89,11 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     final prefs = await SharedPreferences.getInstance();
     final currentCar = _cars[_currentCarIndex];
 
-    // Guardar información del carro seleccionado
-    await prefs.setString('selected_car_name', currentCar.name);
-    await prefs.setString('selected_car_image', currentCar.carImagePath);
-    await prefs.setString('selected_driver_name', currentCar.driverName);
-    await prefs.setString('selected_driver_image', currentCar.driverImagePath);
+    // Guardar TODO el CarData como JSON
+    final carMap = currentCar.toMap();
+    carMap.forEach((key, value) async {
+      await prefs.setString('selected_car_$key', value);
+    });
 
     // Navegar a la selección de pista
     Navigator.pushNamed(context, '/track_selection');
