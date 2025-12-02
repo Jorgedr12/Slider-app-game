@@ -33,9 +33,9 @@ class RacingGame extends FlameGame
   String currentTrackName = 'MONTE AKINA';
 
   // Velocidad del juego
-  double gameSpeed = 200.0;
-  double baseSpeed = 200.0;
-  double speedIncrement = 5.0;
+  double gameSpeed = 400.0;
+  double baseSpeed = 400.0;
+  double speedIncrement = 10.0;
 
   // ⭐ NUEVO: Configuración de tamaños
   late GameSizeConfig sizeConfig;
@@ -49,6 +49,7 @@ class RacingGame extends FlameGame
   Function()? onGameOver;
 
   int _obstacleSpawnCount = 0;
+  TimerComponent? _spawnTimer;
 
   RacingGame({
     this.isVertical = true,
@@ -102,7 +103,7 @@ class RacingGame extends FlameGame
     // Cargar banco de monedas persistente
     await _loadCoinBank();
 
-    _startObstacleGeneration();
+    _resetSpawnTimer();
   }
 
   @override
@@ -181,29 +182,50 @@ class RacingGame extends FlameGame
     // No longer needed
   }
 
-  void _startObstacleGeneration() {
-    world.add(
-      TimerComponent(
-        period: 1.2, // Más rápido (antes 2.0)
-        repeat: true,
-        onTick: () {
-          if (!paused && !isGameOver) {
-            _spawnObstacle();
-            _obstacleSpawnCount++;
+  void _resetSpawnTimer() {
+    _spawnTimer?.removeFromParent();
 
-            // Monedas cada 4 obstáculos
-            if (_obstacleSpawnCount % 4 == 0) {
-              _spawnCoin();
-            }
+    // Más rápido en horizontal (0.5s) que en vertical (0.8s)
+    final double spawnPeriod = isVertical ? 0.8 : 0.5;
 
-            // Gasolina cada 10 obstáculos
-            if (_obstacleSpawnCount % 10 == 0) {
-              _spawnFuel();
-            }
+    _spawnTimer = TimerComponent(
+      period: spawnPeriod,
+      repeat: true,
+      onTick: () {
+        if (!paused && !isGameOver) {
+          _spawnObstacle();
+          _obstacleSpawnCount++;
+
+          // Monedas cada 4 obstáculos
+          if (_obstacleSpawnCount % 4 == 0) {
+            _spawnCoin();
           }
-        },
-      ),
+
+          // Gasolina cada 10 obstáculos
+          if (_obstacleSpawnCount % 10 == 0) {
+            _spawnFuel();
+          }
+        }
+      },
     );
+    world.add(_spawnTimer!);
+  }
+
+  bool _isInRoadBounds(PositionComponent component) {
+    final config = sizeConfig;
+    final double roadStart = config.sideWidth;
+    final double roadEnd = config.sideWidth + config.roadWidth;
+
+    // Margen de tolerancia
+    const double tolerance = 20.0;
+
+    if (isVertical) {
+      return component.position.x >= roadStart - tolerance &&
+          component.position.x <= roadEnd + tolerance;
+    } else {
+      return component.position.y >= roadStart - tolerance &&
+          component.position.y <= roadEnd + tolerance;
+    }
   }
 
   void _spawnObstacle() {
@@ -276,8 +298,20 @@ class RacingGame extends FlameGame
     trackBackground.updateOrientation(isVertical);
     playerCar.updateOrientation(isVertical);
 
+    // Reiniciar timer con nueva velocidad
+    _resetSpawnTimer();
+
     world.children.whereType<ObstacleComponent>().forEach((obs) {
       obs.updateOrientation(isVertical);
+      if (!_isInRoadBounds(obs)) obs.removeFromParent();
+    });
+    world.children.whereType<CoinComponent>().forEach((c) {
+      c.updateOrientation(isVertical);
+      if (!_isInRoadBounds(c)) c.removeFromParent();
+    });
+    world.children.whereType<FuelComponent>().forEach((f) {
+      f.updateOrientation(isVertical);
+      if (!_isInRoadBounds(f)) f.removeFromParent();
     });
   }
 
@@ -339,7 +373,7 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
   final Paint fallbackPaint = Paint()..color = Colors.orange;
 
   // Movimiento libre
-  double speed = 400.0;
+  double speed = 600.0;
 
   bool movingLeft = false;
   bool movingRight = false;
@@ -378,13 +412,21 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
     super.render(canvas);
 
     if (carSprite != null) {
-      // Renderizar sprite
-      carSprite!.render(
-        canvas,
-        position: Vector2.zero(),
-        size: size,
-        // anchor: Anchor.topLeft, // Por defecto es topLeft, que llena el componente desde 0,0
-      );
+      if (isVertical) {
+        // Renderizar normal (vertical)
+        carSprite!.render(canvas, position: Vector2.zero(), size: size);
+      } else {
+        // Renderizar rotado 90 grados para horizontal
+        canvas.save();
+        canvas.translate(size.x / 2, size.y / 2);
+        canvas.rotate(pi / 2);
+        carSprite!.render(
+          canvas,
+          position: Vector2(-size.y / 2, -size.x / 2),
+          size: Vector2(size.y, size.x),
+        );
+        canvas.restore();
+      }
     } else {
       // Renderizar fallback (rectángulo naranja)
       final rect = Rect.fromLTWH(0, 0, size.x, size.y);
@@ -1274,5 +1316,11 @@ class FuelComponent extends PositionComponent
       game.addFuel(20); // Recargar 20 de gasolina
       removeFromParent();
     }
+  }
+
+  void updateOrientation(bool vertical) {
+    isVertical = vertical;
+    final itemSize = game.sizeConfig.getObstacleSize(40, 40);
+    size = Vector2(itemSize.x, itemSize.y);
   }
 }
