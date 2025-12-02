@@ -10,6 +10,7 @@ import 'shop.dart';
 import 'credits.dart';
 import 'track_selection.dart';
 import 'settings.dart';
+import 'ranking.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         '/track_selection': (context) => const TrackSelectionScreen(),
         '/settings': (context) => const SettingsPage(),
         '/shop': (context) => Shop(),
+        '/ranking': (context) => const RankingPage(),
         '/credits': (context) => const CreditsScreen(),
       },
       onGenerateRoute: (settings) {

@@ -156,7 +156,12 @@ class _MenuState extends State<Menu> {
           },
         ),
         const SizedBox(height: 1),
-        _menuText('RANKING', onTap: () {}),
+        _menuText(
+          'RANKING',
+          onTap: () {
+            Navigator.pushNamed(context, '/ranking');
+          },
+        ),
         const SizedBox(height: 1),
         _menuText(
           'SETTINGS',
