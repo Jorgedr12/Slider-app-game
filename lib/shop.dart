@@ -105,11 +105,11 @@ class _ShopState extends State<Shop> {
   Future<void> _playShopMusic() async {
     try {
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      
+
       AudioManager.instance.setBytesPlayer(_audioPlayer);
-      
+
       await _audioPlayer.setVolume(AudioManager.instance.effectiveMusicVolume);
-      
+
       await _audioPlayer.play(AssetSource('music/shop_theme.m4a'));
     } catch (e) {
       debugPrint('Error al reproducir música de la tienda: $e');
@@ -124,28 +124,35 @@ class _ShopState extends State<Shop> {
   }
 
   Future<void> _loadPlayerData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      coinBank = prefs.getInt('coin_bank') ?? 0;
-      healthUpgradeCount = prefs.getInt('healthUpgradeCount') ?? 0;
-      fuelUpgradeCount = prefs.getInt('fuelUpgradeCount') ?? 0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-      // Recalcular para corregir datos antiguos (ej. cuando sumaba 25)
-      maxFuel = 100.0 + (fuelUpgradeCount * 20.0);
-      maxLives = 3 + healthUpgradeCount;
+      setState(() {
+        coinBank = prefs.getInt('coin_bank') ?? 0;
+        healthUpgradeCount = prefs.getInt('healthUpgradeCount') ?? 0;
+        fuelUpgradeCount = prefs.getInt('fuelUpgradeCount') ?? 0;
+        maxFuel = 100.0 + (fuelUpgradeCount * 20.0);
+        maxLives = 3 + healthUpgradeCount;
 
-      ownedCharacters = prefs.getStringList('ownedCharacters') ?? [];
-    });
+        ownedCharacters = prefs.getStringList('ownedCharacters') ?? [];
+      });
+    } catch (e) {
+      debugPrint('Error cargando datos del jugador: $e');
+    }
   }
 
   Future<void> _savePlayerData() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('coin_bank', coinBank);
-    await prefs.setInt('healthUpgradeCount', healthUpgradeCount);
-    await prefs.setInt('fuelUpgradeCount', fuelUpgradeCount);
-    await prefs.setDouble('maxFuel', maxFuel);
-    await prefs.setInt('maxLives', maxLives);
-    await prefs.setStringList('ownedCharacters', ownedCharacters);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('coin_bank', coinBank);
+      await prefs.setInt('healthUpgradeCount', healthUpgradeCount);
+      await prefs.setInt('fuelUpgradeCount', fuelUpgradeCount);
+      await prefs.setDouble('maxFuel', maxFuel);
+      await prefs.setInt('maxLives', maxLives);
+      await prefs.setStringList('ownedCharacters', ownedCharacters);
+    } catch (e) {
+      debugPrint('Error guardando datos del jugador: $e');
+    }
   }
 
   int _calculatePrice(ShopItem item) {
@@ -166,10 +173,10 @@ class _ShopState extends State<Shop> {
 
   bool _isMaxedOut(ShopItem item) {
     if (item.type == ShopItemType.fuelUpgrade) {
-      return maxFuel >= 200;
+      return fuelUpgradeCount >= 5;
     }
     if (item.type == ShopItemType.healthUpgrade) {
-      return maxLives >= 8; // Límite razonable para vidas
+      return healthUpgradeCount >= 5;
     }
     return false;
   }
@@ -332,18 +339,18 @@ class _ShopState extends State<Shop> {
 
       if (item.type == ShopItemType.healthUpgrade) {
         healthUpgradeCount++;
-        maxLives++;
+        maxLives = 3 + healthUpgradeCount;
       } else if (item.type == ShopItemType.fuelUpgrade) {
         fuelUpgradeCount++;
-        maxFuel += 20;
+        maxFuel = 100.0 + (fuelUpgradeCount * 20.0);
       } else if (item.type == ShopItemType.character) {
         if (!ownedCharacters.contains(item.id)) {
           ownedCharacters.add(item.id);
         }
       }
     });
-
     _savePlayerData();
+    AudioManager.instance.playSfx('sound effects/coin_recieved.m4a');
   }
 
   @override
@@ -455,7 +462,7 @@ class _ShopState extends State<Shop> {
 
             const SizedBox(height: 30),
 
-            // Item carousel - con altura limitada
+            // Item carousel
             SizedBox(
               height: 450,
               child: PageView.builder(
@@ -801,21 +808,22 @@ class _ShopState extends State<Shop> {
 
                   SizedBox(height: isPortrait ? 10 : 5),
 
-                  // Additional info for upgrades
-                  if (item.type == ShopItemType.healthUpgrade &&
-                      healthUpgradeCount > 0)
+                  if (item.type == ShopItemType.healthUpgrade)
                     Text(
-                      'Owned: $healthUpgradeCount',
+                      healthUpgradeCount > 0
+                          ? 'Level: $healthUpgradeCount/5'
+                          : 'Not upgraded',
                       style: TextStyle(
                         fontFamily: 'PressStart',
                         fontSize: isPortrait ? 9 : 6,
                         color: Colors.grey[500],
                       ),
                     ),
-                  if (item.type == ShopItemType.fuelUpgrade &&
-                      fuelUpgradeCount > 0)
+                  if (item.type == ShopItemType.fuelUpgrade)
                     Text(
-                      'Owned: $fuelUpgradeCount',
+                      fuelUpgradeCount > 0
+                          ? 'Level: $fuelUpgradeCount/5'
+                          : 'Not upgraded',
                       style: TextStyle(
                         fontFamily: 'PressStart',
                         fontSize: isPortrait ? 9 : 6,
