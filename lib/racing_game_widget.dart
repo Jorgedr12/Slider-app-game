@@ -473,6 +473,8 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                             '${_game.obstaclesAvoided}',
                           ),
                           const SizedBox(height: 10),
+                          _buildFinalStat('MONEDAS', '${_game.coinsCollected}'),
+                          const SizedBox(height: 10),
                           _buildFinalStat(
                             'VEL. MÁXIMA',
                             '${_game.maxSpeed.toStringAsFixed(0)} km/h',
@@ -536,6 +538,8 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                         'OBSTÁCULOS',
                         '${_game.obstaclesAvoided}',
                       ),
+                      const SizedBox(height: 15),
+                      _buildFinalStat('MONEDAS', '${_game.coinsCollected}'),
                       const SizedBox(height: 15),
                       _buildFinalStat(
                         'VEL. MÁXIMA',

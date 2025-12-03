@@ -23,7 +23,7 @@ class RacingGame extends FlameGame
   double currentSpeed = 0;
   bool isGameOver = false;
   int lives = 3;
-  int maxLives = 8;
+  int maxLives = 3;
 
   // Configuración
   bool isVertical = true;
@@ -49,7 +49,8 @@ class RacingGame extends FlameGame
   Function()? onGameOver;
 
   int _obstacleSpawnCount = 0;
-  TimerComponent? _spawnTimer;
+  double _timeSinceLastSpawn = 0;
+  double _currentSpawnInterval = 1.5;
 
   RacingGame({
     this.isVertical = true,
@@ -120,7 +121,7 @@ class RacingGame extends FlameGame
     world.add(playerCar);
 
     // Cargar banco de monedas persistente
-    await _loadCoinBank();
+    await _loadPlayerData();
 
     _resetSpawnTimer();
   }
@@ -144,6 +145,37 @@ class RacingGame extends FlameGame
       if (fuel <= 0) {
         fuel = 0;
         _triggerGameOver();
+      }
+
+      // ⭐ Lógica de spawn progresivo
+      _timeSinceLastSpawn += dt;
+
+      // Calcular intervalo basado en velocidad: A mayor velocidad, menor intervalo
+      // Base: 400 speed -> 1.5s (vertical) / 1.0s (horizontal)
+      // Max: 1000 speed -> 0.5s (vertical) / 0.3s (horizontal)
+      double speedFactor = (gameSpeed - baseSpeed) / 600.0; // 0.0 a 1.0 aprox
+      speedFactor = speedFactor.clamp(0.0, 1.0);
+
+      double baseInterval = isVertical ? 1.5 : 1.0;
+      double minInterval = isVertical ? 0.5 : 0.3;
+
+      _currentSpawnInterval =
+          baseInterval - (speedFactor * (baseInterval - minInterval));
+
+      if (_timeSinceLastSpawn >= _currentSpawnInterval) {
+        _timeSinceLastSpawn = 0;
+        _spawnObstacle();
+        _obstacleSpawnCount++;
+
+        // Monedas cada 4 obstáculos
+        if (_obstacleSpawnCount % 4 == 0) {
+          _spawnCoin();
+        }
+
+        // Gasolina cada 10 obstáculos
+        if (_obstacleSpawnCount % 10 == 0) {
+          _spawnFuel();
+        }
       }
     }
   }
@@ -202,32 +234,9 @@ class RacingGame extends FlameGame
   }
 
   void _resetSpawnTimer() {
-    _spawnTimer?.removeFromParent();
-
-    // Más rápido en horizontal (0.4s) que en vertical (0.6s)
-    final double spawnPeriod = isVertical ? 0.6 : 0.4;
-
-    _spawnTimer = TimerComponent(
-      period: spawnPeriod,
-      repeat: true,
-      onTick: () {
-        if (!paused && !isGameOver) {
-          _spawnObstacle();
-          _obstacleSpawnCount++;
-
-          // Monedas cada 4 obstáculos
-          if (_obstacleSpawnCount % 4 == 0) {
-            _spawnCoin();
-          }
-
-          // Gasolina cada 10 obstáculos
-          if (_obstacleSpawnCount % 10 == 0) {
-            _spawnFuel();
-          }
-        }
-      },
-    );
-    world.add(_spawnTimer!);
+    // Reiniciar contadores de spawn
+    _timeSinceLastSpawn = 0;
+    _currentSpawnInterval = isVertical ? 1.5 : 1.0;
   }
 
   bool _isInRoadBounds(PositionComponent component) {
@@ -276,10 +285,10 @@ class RacingGame extends FlameGame
 
   void resetGame() {
     distance = 0;
-    fuel = 100;
+    fuel = maxFuel;
     obstaclesAvoided = 0;
     coinsCollected = 0;
-    lives = 3;
+    lives = maxLives;
     maxSpeed = 0;
     currentSpeed = 0;
     gameSpeed = baseSpeed;
@@ -360,13 +369,27 @@ class RacingGame extends FlameGame
     lives = (lives + amount).clamp(0, maxLives);
   }
 
-  Future<void> _loadCoinBank() async {
+  Future<void> _loadPlayerData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       coinBank = prefs.getInt('coin_bank') ?? 0;
+
+      // Cargar niveles de mejora
+      final fuelUpgradeCount = prefs.getInt('fuelUpgradeCount') ?? 0;
+      final healthUpgradeCount = prefs.getInt('healthUpgradeCount') ?? 0;
+
+      // Recalcular máximos basados en los niveles para asegurar consistencia (20 por mejora)
+      maxFuel = 100.0 + (fuelUpgradeCount * 20.0);
+      maxLives = 3 + healthUpgradeCount;
+
+      // Inicializar valores actuales con los máximos cargados
+      fuel = maxFuel;
+      lives = maxLives;
     } catch (e) {
-      debugPrint('❌ Error cargando coin_bank: $e');
+      debugPrint('❌ Error cargando datos del jugador: $e');
       coinBank = 0;
+      maxFuel = 100.0;
+      maxLives = 3;
     }
   }
 

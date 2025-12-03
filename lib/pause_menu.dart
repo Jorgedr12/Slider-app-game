@@ -401,8 +401,10 @@ class PauseMenu extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 30),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 15,
+                  runSpacing: 15,
                   children: [
                     // Botón Cancelar
                     _buildDialogButton(
