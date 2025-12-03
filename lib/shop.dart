@@ -123,44 +123,81 @@ class _ShopState extends State<Shop> {
     super.dispose();
   }
 
+  /// ⭐ CARGA DE DATOS - Lee desde SharedPreferences
   Future<void> _loadPlayerData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
       setState(() {
+        // Cargar monedas
         coinBank = prefs.getInt('coin_bank') ?? 0;
+
+        // Cargar contadores de mejoras
         healthUpgradeCount = prefs.getInt('healthUpgradeCount') ?? 0;
         fuelUpgradeCount = prefs.getInt('fuelUpgradeCount') ?? 0;
+
+        // Recalcular valores máximos basados en mejoras
+        // IMPORTANTE: Usar la misma fórmula que en racing_game.dart
         maxFuel = 100.0 + (fuelUpgradeCount * 20.0);
         maxLives = 3 + healthUpgradeCount;
 
+        // Cargar personajes comprados
         ownedCharacters = prefs.getStringList('ownedCharacters') ?? [];
       });
+
+      debugPrint('📊 Datos cargados en Shop:');
+      debugPrint('   Monedas: $coinBank');
+      debugPrint(
+        '   Health Upgrades: $healthUpgradeCount (Max Lives: $maxLives)',
+      );
+      debugPrint('   Fuel Upgrades: $fuelUpgradeCount (Max Fuel: $maxFuel)');
+      debugPrint('   Personajes: ${ownedCharacters.length}');
     } catch (e) {
-      debugPrint('Error cargando datos del jugador: $e');
+      debugPrint('❌ Error cargando datos del jugador: $e');
     }
   }
 
+  /// ⭐ GUARDADO DE DATOS - Escribe en SharedPreferences
   Future<void> _savePlayerData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // Guardar monedas
       await prefs.setInt('coin_bank', coinBank);
+
+      // ⭐ CRÍTICO: Guardar contadores de mejoras (incrementados)
       await prefs.setInt('healthUpgradeCount', healthUpgradeCount);
       await prefs.setInt('fuelUpgradeCount', fuelUpgradeCount);
+
+      // Guardar valores máximos recalculados
       await prefs.setDouble('maxFuel', maxFuel);
       await prefs.setInt('maxLives', maxLives);
+
+      // Guardar personajes
       await prefs.setStringList('ownedCharacters', ownedCharacters);
+
+      debugPrint('💾 Datos guardados en Shop:');
+      debugPrint('   Health Upgrades: $healthUpgradeCount');
+      debugPrint('   Fuel Upgrades: $fuelUpgradeCount');
+      debugPrint('   Max Fuel: $maxFuel');
+      debugPrint('   Max Lives: $maxLives');
     } catch (e) {
-      debugPrint('Error guardando datos del jugador: $e');
+      debugPrint('❌ Error guardando datos del jugador: $e');
     }
   }
 
+  /// ⭐ CÁLCULO DE PRECIO - Se duplica con cada compra (1 << n es 2^n)
   int _calculatePrice(ShopItem item) {
     if (item.type == ShopItemType.healthUpgrade) {
+      // Precio = basePrice * 2^healthUpgradeCount
+      // 25, 50, 100, 200, 400, 800, 1600, 3200...
       return item.basePrice * (1 << healthUpgradeCount);
     } else if (item.type == ShopItemType.fuelUpgrade) {
+      // Precio = basePrice * 2^fuelUpgradeCount
+      // 25, 50, 100, 200, 400, 800, 1600, 3200...
       return item.basePrice * (1 << fuelUpgradeCount);
     }
+    // Personajes tienen precio fijo
     return item.basePrice;
   }
 
@@ -171,12 +208,15 @@ class _ShopState extends State<Shop> {
     return false;
   }
 
+  /// ⭐ LÍMITES MÁXIMOS para evitar valores infinitos
   bool _isMaxedOut(ShopItem item) {
     if (item.type == ShopItemType.fuelUpgrade) {
-      return fuelUpgradeCount >= 5;
+      // Límite: 5 mejoras = 100 + (5*20) = 200 de combustible
+      return fuelUpgradeCount >= 5; // o maxFuel >= 200
     }
     if (item.type == ShopItemType.healthUpgrade) {
-      return healthUpgradeCount >= 5;
+      // Límite: 5 mejoras = 3 + 5 = 8 vidas
+      return healthUpgradeCount >= 5; // o maxLives >= 8
     }
     return false;
   }
@@ -331,25 +371,46 @@ class _ShopState extends State<Shop> {
     );
   }
 
+  /// ⭐ COMPRA DE ITEMS - Incrementa contadores y recalcula valores
   void _purchaseItem(ShopItem item) {
     final price = _calculatePrice(item);
 
     setState(() {
+      // Descontar monedas
       coinBank -= price;
 
       if (item.type == ShopItemType.healthUpgrade) {
+        // ⭐ INCREMENTAR CONTADOR en SharedPreferences
         healthUpgradeCount++;
+        // Recalcular valor máximo
         maxLives = 3 + healthUpgradeCount;
+
+        debugPrint('✅ Health Upgrade comprado!');
+        debugPrint('   Nivel: $healthUpgradeCount');
+        debugPrint('   Max Lives: $maxLives');
+        debugPrint('   Próximo precio: ${_calculatePrice(item)}');
       } else if (item.type == ShopItemType.fuelUpgrade) {
+        // ⭐ INCREMENTAR CONTADOR en SharedPreferences
         fuelUpgradeCount++;
+        // Recalcular valor máximo
         maxFuel = 100.0 + (fuelUpgradeCount * 20.0);
+
+        debugPrint('✅ Fuel Upgrade comprado!');
+        debugPrint('   Nivel: $fuelUpgradeCount');
+        debugPrint('   Max Fuel: $maxFuel');
+        debugPrint('   Próximo precio: ${_calculatePrice(item)}');
       } else if (item.type == ShopItemType.character) {
         if (!ownedCharacters.contains(item.id)) {
           ownedCharacters.add(item.id);
+          debugPrint('✅ Personaje comprado: ${item.name}');
         }
       }
     });
+
+    // ⭐ GUARDAR TODO en SharedPreferences
     _savePlayerData();
+
+    // Opcional: Reproducir sonido de compra
     AudioManager.instance.playSfx('sound effects/coin_recieved.m4a');
   }
 
@@ -462,7 +523,7 @@ class _ShopState extends State<Shop> {
 
             const SizedBox(height: 30),
 
-            // Item carousel
+            // Item carousel - con altura limitada
             SizedBox(
               height: 450,
               child: PageView.builder(
@@ -508,34 +569,44 @@ class _ShopState extends State<Shop> {
   }
 
   Widget _buildLandscapeLayout() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 1200;
+
     return Stack(
       children: [
         // Back button (top left)
         Positioned(
-          top: 15,
-          left: 15,
+          top: isLargeScreen ? 25 : 15,
+          left: isLargeScreen ? 25 : 15,
           child: GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(isLargeScreen ? 14 : 10),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.7),
                 border: Border.all(color: Colors.orange, width: 2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.arrow_back, color: Colors.white, size: 20),
+              child: Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+                size: isLargeScreen ? 28 : 20,
+              ),
             ),
           ),
         ),
 
         // Title SHOP (top center)
         Positioned(
-          top: 15,
+          top: isLargeScreen ? 25 : 15,
           left: 0,
           right: 0,
           child: Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+              padding: EdgeInsets.symmetric(
+                horizontal: isLargeScreen ? 35 : 25,
+                vertical: isLargeScreen ? 14 : 10,
+              ),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.8),
                 border: Border.all(color: Colors.orange, width: 2),
@@ -545,7 +616,7 @@ class _ShopState extends State<Shop> {
                 'SHOP',
                 style: TextStyle(
                   fontFamily: 'PressStart',
-                  fontSize: 18,
+                  fontSize: isLargeScreen ? 26 : 18,
                   color: Colors.white,
                   letterSpacing: 2,
                 ),
@@ -556,10 +627,13 @@ class _ShopState extends State<Shop> {
 
         // Coin display (top right)
         Positioned(
-          top: 15,
-          right: 15,
+          top: isLargeScreen ? 25 : 15,
+          right: isLargeScreen ? 25 : 15,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: isLargeScreen ? 16 : 12,
+              vertical: isLargeScreen ? 10 : 8,
+            ),
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.8),
               border: Border.all(color: Colors.yellow, width: 2),
@@ -567,13 +641,17 @@ class _ShopState extends State<Shop> {
             ),
             child: Row(
               children: [
-                Icon(Icons.monetization_on, color: Colors.yellow, size: 18),
-                const SizedBox(width: 6),
+                Icon(
+                  Icons.monetization_on,
+                  color: Colors.yellow,
+                  size: isLargeScreen ? 24 : 18,
+                ),
+                SizedBox(width: isLargeScreen ? 8 : 6),
                 Text(
                   '$coinBank',
                   style: TextStyle(
                     fontFamily: 'PressStart',
-                    fontSize: 13,
+                    fontSize: isLargeScreen ? 17 : 13,
                     color: Colors.yellow,
                   ),
                 ),
@@ -584,10 +662,12 @@ class _ShopState extends State<Shop> {
 
         // Shop items carousel (centered right)
         Positioned(
-          right: 30,
-          top: 80,
-          bottom: 20,
-          width: MediaQuery.of(context).size.width * 0.45,
+          right: isLargeScreen ? 50 : 30,
+          top: isLargeScreen ? 120 : 80,
+          bottom: isLargeScreen ? 30 : 20,
+          width: isLargeScreen
+              ? MediaQuery.of(context).size.width * 0.55
+              : MediaQuery.of(context).size.width * 0.45,
           child: Column(
             children: [
               // Item carousel
@@ -644,6 +724,9 @@ class _ShopState extends State<Shop> {
     final isMaxed = _isMaxedOut(item);
     final scale = _currentPage == index ? 1.0 : 0.88;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 1200;
+
     return TweenAnimationBuilder(
       duration: const Duration(milliseconds: 300),
       tween: Tween<double>(begin: scale, end: scale),
@@ -679,8 +762,8 @@ class _ShopState extends State<Shop> {
                 children: [
                   // Item image (real asset)
                   Container(
-                    width: isPortrait ? 140 : 80,
-                    height: isPortrait ? 140 : 80,
+                    width: isLargeScreen ? 220 : (isPortrait ? 140 : 80),
+                    height: isLargeScreen ? 220 : (isPortrait ? 140 : 80),
                     decoration: BoxDecoration(
                       color: Colors.grey[900],
                       border: Border.all(color: Colors.grey[600]!, width: 2),
@@ -744,7 +827,7 @@ class _ShopState extends State<Shop> {
                         'OWNED',
                         style: TextStyle(
                           fontFamily: 'PressStart',
-                          fontSize: isPortrait ? 14 : 9,
+                          fontSize: isLargeScreen ? 18 : (isPortrait ? 14 : 9),
                           color: Colors.green,
                         ),
                       ),
@@ -752,8 +835,8 @@ class _ShopState extends State<Shop> {
                   else if (isMaxed)
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: isPortrait ? 15 : 10,
-                        vertical: isPortrait ? 8 : 5,
+                        horizontal: isLargeScreen ? 22 : (isPortrait ? 15 : 10),
+                        vertical: isLargeScreen ? 12 : (isPortrait ? 8 : 5),
                       ),
                       decoration: BoxDecoration(
                         color: Colors.blue.withOpacity(0.2),
@@ -764,7 +847,7 @@ class _ShopState extends State<Shop> {
                         'MAXED',
                         style: TextStyle(
                           fontFamily: 'PressStart',
-                          fontSize: isPortrait ? 14 : 9,
+                          fontSize: isLargeScreen ? 18 : (isPortrait ? 14 : 9),
                           color: Colors.blue,
                         ),
                       ),
@@ -772,8 +855,8 @@ class _ShopState extends State<Shop> {
                   else
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: isPortrait ? 15 : 10,
-                        vertical: isPortrait ? 8 : 5,
+                        horizontal: isLargeScreen ? 22 : (isPortrait ? 15 : 10),
+                        vertical: isLargeScreen ? 12 : (isPortrait ? 8 : 5),
                       ),
                       decoration: BoxDecoration(
                         color: canAfford
@@ -791,14 +874,16 @@ class _ShopState extends State<Shop> {
                           Icon(
                             Icons.monetization_on,
                             color: canAfford ? Colors.yellow : Colors.red,
-                            size: isPortrait ? 18 : 12,
+                            size: isLargeScreen ? 24 : (isPortrait ? 18 : 12),
                           ),
                           const SizedBox(width: 6),
                           Text(
                             '$price',
                             style: TextStyle(
                               fontFamily: 'PressStart',
-                              fontSize: isPortrait ? 15 : 10,
+                              fontSize: isLargeScreen
+                                  ? 18
+                                  : (isPortrait ? 15 : 10),
                               color: canAfford ? Colors.yellow : Colors.red,
                             ),
                           ),
@@ -808,6 +893,7 @@ class _ShopState extends State<Shop> {
 
                   SizedBox(height: isPortrait ? 10 : 5),
 
+                  // ⭐ Mostrar nivel actual de mejoras
                   if (item.type == ShopItemType.healthUpgrade)
                     Text(
                       healthUpgradeCount > 0
