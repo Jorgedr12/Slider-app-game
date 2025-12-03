@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flame/game.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -83,7 +84,9 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
 
       AudioManager.instance.setBytesPlayer(_gameAudioPlayer);
 
-      await _gameAudioPlayer.setVolume(AudioManager.instance.effectiveMusicVolume);
+      await _gameAudioPlayer.setVolume(
+        AudioManager.instance.effectiveMusicVolume,
+      );
 
       await _gameAudioPlayer.play(AssetSource('music/race_theme_v1.m4a'));
     } catch (e) {
@@ -151,6 +154,12 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     super.dispose();
   }
 
+  bool get _shouldShowOrientationButton {
+    if (kIsWeb) return true;
+    return defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform != TargetPlatform.iOS;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,7 +177,8 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
             if (!_isPaused && !_isGameOver) _buildPauseButton(),
 
             // Botón de cambiar orientación
-            if (!_isPaused && !_isGameOver) _buildOrientationButton(),
+            if (!_isPaused && !_isGameOver && _shouldShowOrientationButton)
+              _buildOrientationButton(),
 
             // Menú de pausa
             if (_isPaused && !_isGameOver)
