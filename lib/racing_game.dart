@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:slider_app/game_size_config.dart';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'services/audio_manager.dart';
 
 /// Clase principal del juego de carreras
 /// Maneja la lógica del juego, física, colisiones y estado
@@ -279,6 +280,8 @@ class RacingGame extends FlameGame
 
   void _triggerGameOver() {
     isGameOver = true;
+    // SFX: perder
+    AudioManager.instance.playSfx('sound effects/boom.m4a');
     pauseEngine();
     onGameOver?.call();
   }
@@ -1100,6 +1103,8 @@ class ObstacleComponent extends PositionComponent
     if (playerRect.overlaps(obstacleRect)) {
       game.fuel -= 10;
       game.loseLife(1);
+      // SFX: choque
+      AudioManager.instance.playSfx('sound effects/car_crash.m4a');
       removeFromParent();
     }
   }
@@ -1273,6 +1278,8 @@ class CoinComponent extends PositionComponent
 
     if (playerRect.overlaps(coinRect)) {
       game.incrementCoins(100);
+      // SFX: moneda
+      AudioManager.instance.playSfx('sound effects/coin_recieved.m4a');
       removeFromParent();
     }
   }
@@ -1418,6 +1425,8 @@ class FuelComponent extends PositionComponent
 
     if (playerRect.overlaps(fuelRect)) {
       game.addFuel(20); // Recargar 20 de gasolina
+      // SFX: gasolina
+      AudioManager.instance.playSfx('sound effects/car_engine_roaring.m4a');
       removeFromParent();
     }
   }

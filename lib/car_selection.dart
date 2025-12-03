@@ -1,5 +1,8 @@
+import 'package:audioplayers/audioplayers.dart';
+import 'package:audioplayers_platform_interface/audioplayers_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'services/audio_manager.dart';
 
 class CarData {
   final String name;
@@ -8,6 +11,7 @@ class CarData {
   final String driverImagePath;
   final String driverName;
   final String? characterId; // ID para verificar si está desbloqueado
+  final String sfxPath; // SFX único para cada personaje
 
   CarData({
     required this.name,
@@ -15,6 +19,7 @@ class CarData {
     required this.carGameSprite,
     required this.driverImagePath,
     required this.driverName,
+    required this.sfxPath,
     this.characterId, // null = desbloqueado por defecto
   });
 
@@ -25,6 +30,7 @@ class CarData {
       'carGameSprite': carGameSprite,
       'driverImagePath': driverImagePath,
       'driverName': driverName,
+      'sfxPath': sfxPath,
     };
   }
 
@@ -35,6 +41,7 @@ class CarData {
       carGameSprite: map['carGameSprite'] ?? '',
       driverImagePath: map['driverImagePath'] ?? '',
       driverName: map['driverName'] ?? '',
+      sfxPath: map['sfxPath'] ?? '',
     );
   }
 }
@@ -50,6 +57,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
   int _currentCarIndex = 0;
   List<String> _ownedCharacters = [];
   bool _isLoading = true;
+  AudioPlayer? _currentSfxPlayer;
 
   final List<CarData> _cars = [
     CarData(
@@ -59,6 +67,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       driverImagePath: 'assets/characters/takumi_fujiwara.png',
       driverName: 'TAKUMI FUJIWARA',
       characterId: null,
+      sfxPath: 'sound effects/car_engine.m4a',
     ),
     CarData(
       name: 'JEEP CHEROKEE',
@@ -67,6 +76,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       driverImagePath: 'assets/characters/pirata_culiacan.png',
       driverName: 'PIRATA DE CULIACÁN',
       characterId: null,
+      sfxPath: 'sound effects/que_rollo.m4a',
     ),
     CarData(
       name: 'MICROBUS RUTA 12',
@@ -75,6 +85,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       driverImagePath: 'assets/characters/el_vitor.png',
       driverName: 'EL VITOR',
       characterId: null,
+      sfxPath: 'sound effects/el_vitor.m4a',
     ),
     CarData(
       name: 'HOT DOGS MANOS PUERCAS',
@@ -83,6 +94,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       driverImagePath: 'assets/characters/manos_puercas.png',
       driverName: 'EL MANOS PUERCAS',
       characterId: 'character_manos_puercas',
+      sfxPath: 'sound effects/disgusting_sound_effect.m4a',
     ),
     CarData(
       name: 'TSURU 1992',
@@ -91,6 +103,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       driverImagePath: 'assets/characters/miguel.png',
       driverName: 'MIGUEL THE CREATOR',
       characterId: 'character_da_baby',
+      sfxPath: 'sound effects/tyler.m4a',
     ),
     CarData(
       name: 'DELOREAN',
@@ -99,6 +112,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       driverImagePath: 'assets/characters/cirett.png',
       driverName: 'CIRETT',
       characterId: 'character_cirett',
+      sfxPath: 'sound effects/delorean.m4a',
     ),
   ];
 
@@ -114,6 +128,8 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       _ownedCharacters = prefs.getStringList('ownedCharacters') ?? [];
       _isLoading = false;
     });
+    // Reproduce el SFX del personaje actual al cargar la pantalla
+    await _playCurrentSfx();
   }
 
   bool _isCarUnlocked(CarData car) {
@@ -124,16 +140,38 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     return _ownedCharacters.contains(car.characterId);
   }
 
+  Future<void> _playCurrentSfx() async {
+    // Cancela el SFX anterior si existe
+    if (_currentSfxPlayer != null) {
+      try {
+        await _currentSfxPlayer!.stop();
+        await _currentSfxPlayer!.dispose();
+      } catch (_) {}
+      _currentSfxPlayer = null;
+    }
+    // Reproduce el SFX del personaje actual
+    final player = AudioPlayer();
+    await player.setVolume(AudioManager.instance.effectiveSfxVolume);
+    await player.play(AssetSource(_cars[_currentCarIndex].sfxPath));
+    player.onPlayerComplete.listen((_) {
+      player.dispose();
+      if (_currentSfxPlayer == player) _currentSfxPlayer = null;
+    });
+    _currentSfxPlayer = player;
+  }
+
   void _previousCar() {
     setState(() {
       _currentCarIndex = (_currentCarIndex - 1) % _cars.length;
     });
+    _playCurrentSfx();
   }
 
   void _nextCar() {
     setState(() {
       _currentCarIndex = (_currentCarIndex + 1) % _cars.length;
     });
+    _playCurrentSfx();
   }
 
   void _showLockedDialog() {
@@ -215,6 +253,9 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       _showLockedDialog();
       return;
     }
+
+    // Reproduce el SFX del personaje actual al presionar SELECT
+    await _playCurrentSfx();
 
     final prefs = await SharedPreferences.getInstance();
 
