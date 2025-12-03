@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'services/audio_manager.dart';
 
 class ShopItem {
   final String id;
@@ -103,7 +104,11 @@ class _ShopState extends State<Shop> {
   Future<void> _playShopMusic() async {
     try {
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      await _audioPlayer.setVolume(0.4);
+      
+      AudioManager.instance.setBytesPlayer(_audioPlayer);
+      
+      await _audioPlayer.setVolume(AudioManager.instance.effectiveMusicVolume);
+      
       await _audioPlayer.play(AssetSource('music/shop_theme.m4a'));
     } catch (e) {
       debugPrint('Error al reproducir música de la tienda: $e');

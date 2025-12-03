@@ -4,6 +4,7 @@ import 'package:flame/game.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:slider_app/pause_menu.dart';
 import 'package:slider_app/racing_game.dart';
+import 'services/audio_manager.dart';
 // import 'racing_game.dart';
 // import 'pause_menu_advanced.dart';
 
@@ -79,7 +80,11 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   Future<void> _playGameMusic() async {
     try {
       await _gameAudioPlayer.setReleaseMode(ReleaseMode.loop);
-      await _gameAudioPlayer.setVolume(0.5);
+
+      AudioManager.instance.setBytesPlayer(_gameAudioPlayer);
+
+      await _gameAudioPlayer.setVolume(AudioManager.instance.effectiveMusicVolume);
+
       await _gameAudioPlayer.play(AssetSource('music/race_theme_v1.m4a'));
     } catch (e) {
       debugPrint('Error al reproducir música del juego: $e');
@@ -119,6 +124,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   }
 
   void _exitToMenu() {
+    AudioManager.instance.clearCurrentPlayer(_gameAudioPlayer);
     _gameAudioPlayer.stop();
     Navigator.pushReplacementNamed(context, '/');
   }
@@ -139,6 +145,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
 
   @override
   void dispose() {
+    AudioManager.instance.clearCurrentPlayer(_gameAudioPlayer);
     _hudTicker.dispose();
     _gameAudioPlayer.dispose();
     super.dispose();

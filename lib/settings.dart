@@ -1,322 +1,224 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'services/audio_manager.dart';
 
-/// Pantalla de configuración de la aplicación.
-/// 
-/// Permite al usuario ajustar preferencias como sonido, dificultad, etc.
-class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
-  // Variables de configuración
-  bool _soundEnabled = true;
-  bool _vibrationEnabled = true;
-  double _difficulty = 1.0; // 0: Fácil, 1: Normal, 2: Difícil
-  String _selectedCarColor = 'Naranja';
+class _SettingsScreenState extends State<SettingsScreen> {
+  final AudioManager _audioManager = AudioManager.instance;
 
-  // Opciones disponibles
-  final List<String> _carColors = ['Naranja', 'Azul', 'Rojo', 'Verde', 'Amarillo'];
+  double _masterVolume = 1.0;
+  double _musicVolume = 1.0;
+  double _sfxVolume = 1.0;
 
-  String _getDifficultyLabel(double value) {
-    if (value == 0.0) return 'Fácil';
-    if (value == 1.0) return 'Normal';
-    return 'Difícil';
+  @override
+  void initState() {
+    super.initState();
+    _loadAudioSettings();
+  }
+
+  void _loadAudioSettings() {
+    _masterVolume = _audioManager.masterVolume;
+    _musicVolume = _audioManager.musicVolume;
+    _sfxVolume = _audioManager.sfxVolume;
+  }
+
+
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+
+  TextStyle _getRetroStyle({double fontSize = 16, Color color = Colors.white}) {
+    return TextStyle(
+      fontFamily: 'PixelifySans', 
+      fontSize: fontSize,
+      color: color,
+      letterSpacing: 2,
+      shadows: const [
+        Shadow(offset: Offset(2, 2), color: Colors.black),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    const bgImage = 'assets/background/menu_bg.png';
+
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Configuración'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+        backgroundColor: const Color(0xFF0058b0),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          "CONFIGURACIÓN",
+          style: _getRetroStyle(fontSize: 24, color: Colors.white),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(4.0),
+          child: Container(color: Colors.white, height: 4),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
+      body: Stack(
         children: [
-          // Sección: Audio
-          _buildSectionHeader('Audio'),
-          _buildSwitchTile(
-            title: 'Sonido',
-            subtitle: 'Activar efectos de sonido',
-            value: _soundEnabled,
-            icon: _soundEnabled ? Icons.volume_up : Icons.volume_off,
-            onChanged: (value) {
-              setState(() {
-                _soundEnabled = value;
-              });
-            },
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.3,
+              child: Image.asset(
+                bgImage,
+                fit: BoxFit.cover,
+                errorBuilder: (c, e, s) => Container(color: Colors.black),
+              ),
+            ),
           ),
-          _buildSwitchTile(
-            title: 'Vibración',
-            subtitle: 'Activar vibración al tocar',
-            value: _vibrationEnabled,
-            icon: _vibrationEnabled ? Icons.vibration : Icons.phonelink_erase,
-            onChanged: (value) {
-              setState(() {
-                _vibrationEnabled = value;
-              });
-            },
-          ),
-          
-          const Divider(height: 40),
-          
-          // Sección: Juego
-          _buildSectionHeader('Juego'),
-          Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.speed, color: Colors.deepPurple),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Dificultad: ${_getDifficultyLabel(_difficulty)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 35),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.85), // Fondo oscuro semitransparente
+                    border: Border.all(color: Colors.white, width: 4), // Borde blanco grueso
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        offset: const Offset(8, 8), // Sombra de caja dura
+                        blurRadius: 0,
+                      )
                     ],
                   ),
-                  Slider(
-                    value: _difficulty,
-                    min: 0.0,
-                    max: 2.0,
-                    divisions: 2,
-                    label: _getDifficultyLabel(_difficulty),
-                    onChanged: (value) {
-                      setState(() {
-                        _difficulty = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Selector de color de coche
-          Card(
-            elevation: 2,
-            child: ListTile(
-              leading: const Icon(Icons.directions_car, color: Colors.deepPurple),
-              title: const Text(
-                'Color del coche',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-              subtitle: Text(_selectedCarColor),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                _showCarColorDialog();
-              },
-            ),
-          ),
-          
-          const Divider(height: 40),
-          
-          // Sección: Acerca de
-          _buildSectionHeader('Acerca de'),
-          Card(
-            elevation: 2,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.info_outline, color: Colors.deepPurple),
-                  title: const Text('Versión'),
-                  subtitle: const Text('1.0.0'),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.code, color: Colors.deepPurple),
-                  title: const Text('Desarrollador'),
-                  subtitle: const Text('Tu nombre'),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 30),
-          
-          // Botones de acción
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  _showResetDialog();
-                },
-                icon: const Icon(Icons.restore),
-                label: const Text('Restaurar'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "AUDIO SYSTEM",
+                        style: _getRetroStyle(color: Colors.yellowAccent, fontSize: 28),
+                      ),
+                      
+                      const SizedBox(height: 10),
+                      
+                      Container(
+                        width: double.infinity,
+                        height: 2,
+                        color: Colors.white30,
+                        margin: const EdgeInsets.only(bottom: 30),
+                      ),
+
+                      _buildRetroSlider(
+                        label: "MASTER",
+                        value: _masterVolume,
+                        color: Colors.cyanAccent,
+                        onChanged: (val) {
+                          setState(() => _masterVolume = val);
+                          _audioManager.setMasterVolume(val);
+                        },
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      _buildRetroSlider(
+                        label: "MUSIC",
+                        value: _musicVolume,
+                        color: Colors.greenAccent,
+                        onChanged: (val) {
+                          setState(() => _musicVolume = val);
+                          _audioManager.setMusicVolume(val);
+                        },
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      _buildRetroSlider(
+                        label: "SFX",
+                        value: _sfxVolume,
+                        color: Colors.orangeAccent,
+                        onChanged: (val) {
+                          setState(() => _sfxVolume = val);
+                          _audioManager.setSfxVolume(val);
+                        },
+                      ),
+                      
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
               ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  _saveSettings();
-                },
-                icon: const Icon(Icons.save),
-                label: const Text('Guardar'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0, top: 8.0),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.deepPurple,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required IconData icon,
-    required ValueChanged<bool> onChanged,
+  Widget _buildRetroSlider({
+    required String label,
+    required double value,
+    required ValueChanged<double> onChanged,
+    required Color color,
   }) {
-    return Card(
-      elevation: 2,
-      child: SwitchListTile(
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w500),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label, 
+              style: _getRetroStyle(fontSize: 20),
+            ),
+            Text(
+              "${(value * 100).toInt()}%",
+              style: _getRetroStyle(color: color, fontSize: 20),
+            ),
+          ],
         ),
-        subtitle: Text(subtitle),
-        secondary: Icon(icon, color: Colors.deepPurple),
-        value: value,
-        onChanged: onChanged,
-        activeColor: Colors.deepPurple,
-      ),
-    );
-  }
-
-  void _showCarColorDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Seleccionar color del coche'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _carColors.map((color) {
-              return RadioListTile<String>(
-                title: Text(color),
-                value: color,
-                groupValue: _selectedCarColor,
-                onChanged: (String? value) {
-                  setState(() {
-                    _selectedCarColor = value!;
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancelar'),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 30,
+          child: SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 14,
+              activeTrackColor: color,
+              inactiveTrackColor: Colors.grey[800],
+              disabledActiveTrackColor: Colors.grey,
+              disabledInactiveTrackColor: Colors.grey,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0), 
+              overlayShape: SliderComponentShape.noOverlay,
+              trackShape: const RectangularSliderTrackShape(),
+              thumbColor: Colors.transparent,
             ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showResetDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Restaurar configuración'),
-          content: const Text(
-            '¿Estás seguro de que deseas restaurar la configuración a los valores predeterminados?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _soundEnabled = true;
-                  _vibrationEnabled = true;
-                  _difficulty = 1.0;
-                  _selectedCarColor = 'Naranja';
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Configuración restaurada'),
-                    duration: Duration(seconds: 2),
+            child: Stack(
+              alignment: Alignment.centerLeft,
+              children: [
+                Container(
+                  height: 18,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 2),
+                    color: Colors.transparent,
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Restaurar'),
+                ),
+                Slider(
+                  value: value, 
+                  onChanged: onChanged,
+                ),
+              ],
             ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _saveSettings() {
-    // Aquí puedes guardar la configuración en SharedPreferences o base de datos
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Configuración guardada correctamente'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
+          ),
+        ),
+      ],
     );
   }
 }
