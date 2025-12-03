@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slider_app/car_selection.dart';
+import 'services/audio_manager.dart';
 
 class TrackData {
   final String name;
@@ -136,6 +137,9 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
     trackMap.forEach((key, value) async {
       await prefs.setString('selected_track_$key', value.toString());
     });
+
+    // Pausar/detener cualquier música activa (menú u otra)
+    AudioManager.instance.stopCurrent();
 
     // Navegar al juego pasando los datos
     Navigator.pushNamed(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'services/audio_manager.dart';
 
 class Menu extends StatefulWidget {
   const Menu({super.key});
@@ -21,7 +22,11 @@ class _MenuState extends State<Menu> {
   Future<void> _playBackgroundMusic() async {
     try {
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      await _audioPlayer.setVolume(0.4);
+      
+      AudioManager.instance.setBytesPlayer(_audioPlayer);
+      
+      await _audioPlayer.setVolume(AudioManager.instance.effectiveMusicVolume);
+      
       await _audioPlayer.play(AssetSource('music/menu_theme.m4a'));
     } catch (e) {
       debugPrint('Error al reproducir música: $e');
@@ -30,6 +35,8 @@ class _MenuState extends State<Menu> {
 
   @override
   void dispose() {
+    AudioManager.instance.clearCurrentPlayer(_audioPlayer);
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -143,7 +150,6 @@ class _MenuState extends State<Menu> {
           'PLAY',
           selected: true,
           onTap: () {
-            _audioPlayer.stop();
             Navigator.pushNamed(context, '/car_selection');
           },
         ),
@@ -152,21 +158,25 @@ class _MenuState extends State<Menu> {
           'SHOP',
           onTap: () {
             _audioPlayer.stop();
-            Navigator.pushNamed(context, '/shop');
+            Navigator.pushNamed(context, '/shop').then((_) {
+              _playBackgroundMusic(); 
+            });
           },
         ),
         const SizedBox(height: 1),
         _menuText(
           'RANKING',
           onTap: () {
-            Navigator.pushNamed(context, '/ranking');
+            _audioPlayer.stop();
+            Navigator.pushNamed(context, '/ranking').then((_) {
+              _playBackgroundMusic(); 
+            });
           },
         ),
         const SizedBox(height: 1),
         _menuText(
           'SETTINGS',
           onTap: () {
-            _audioPlayer.stop();
             Navigator.pushNamed(context, '/settings');
           },
         ),
@@ -175,7 +185,9 @@ class _MenuState extends State<Menu> {
           'CREDITS',
           onTap: () {
             _audioPlayer.stop();
-            Navigator.pushNamed(context, '/credits');
+            Navigator.pushNamed(context, '/credits').then((_) {
+              _playBackgroundMusic(); 
+            });
           },
         ),
       ],

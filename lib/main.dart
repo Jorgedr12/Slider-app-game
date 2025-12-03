@@ -4,6 +4,7 @@ import 'package:slider_app/racing_game_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/supabase_service.dart';
+import 'services/audio_manager.dart';
 import 'widgets/draggable_car.dart';
 import 'car_selection.dart';
 import 'shop.dart';
@@ -17,6 +18,9 @@ void main() async {
 
   // Load environment variables from .env
   await dotenv.load(fileName: ".env");
+
+  // Initialize audio manager (loads saved volumes)
+  await AudioManager.instance.init();
 
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
@@ -43,7 +47,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const Menu(),
         '/car_selection': (context) => const CarSelectionScreen(),
         '/track_selection': (context) => const TrackSelectionScreen(),
-        '/settings': (context) => const SettingsPage(),
+        '/settings': (context) => const SettingsScreen(),
         '/shop': (context) => Shop(),
         '/ranking': (context) => const RankingPage(),
         '/credits': (context) => const CreditsScreen(),
@@ -207,31 +211,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Settings Page', style: TextStyle(fontSize: 24)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Back to Menu'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// Note: `SettingsScreen` is provided in `lib/settings.dart`.
 
 // Ejemplo de cómo navegar al juego con parámetros desde el menú
 class GameLauncher {
