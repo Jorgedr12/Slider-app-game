@@ -35,6 +35,7 @@ class _ShopState extends State<Shop> {
   int healthUpgradeCount = 0;
   int fuelUpgradeCount = 0;
   double maxFuel = 100;
+  int maxLives = 3;
   List<String> ownedCharacters = [];
 
   final PageController _pageController = PageController(viewportFraction: 0.85);
@@ -46,7 +47,7 @@ class _ShopState extends State<Shop> {
     ShopItem(
       id: 'health_upgrade',
       name: 'HEALTH UPGRADE',
-      description: 'Increase your health capacity',
+      description: 'Increase max lives by 1',
       basePrice: 25,
       imagePath: 'assets/misc/wrench.png',
       type: ShopItemType.healthUpgrade,
@@ -54,7 +55,7 @@ class _ShopState extends State<Shop> {
     ShopItem(
       id: 'fuel_upgrade',
       name: 'FUEL UPGRADE',
-      description: 'Increase max fuel by 25',
+      description: 'Increase max fuel by 20',
       basePrice: 25,
       imagePath: 'assets/misc/gasoline.png',
       type: ShopItemType.fuelUpgrade,
@@ -128,7 +129,11 @@ class _ShopState extends State<Shop> {
       coinBank = prefs.getInt('coin_bank') ?? 0;
       healthUpgradeCount = prefs.getInt('healthUpgradeCount') ?? 0;
       fuelUpgradeCount = prefs.getInt('fuelUpgradeCount') ?? 0;
-      maxFuel = prefs.getDouble('maxFuel') ?? 100.0;
+
+      // Recalcular para corregir datos antiguos (ej. cuando sumaba 25)
+      maxFuel = 100.0 + (fuelUpgradeCount * 20.0);
+      maxLives = 3 + healthUpgradeCount;
+
       ownedCharacters = prefs.getStringList('ownedCharacters') ?? [];
     });
   }
@@ -139,6 +144,7 @@ class _ShopState extends State<Shop> {
     await prefs.setInt('healthUpgradeCount', healthUpgradeCount);
     await prefs.setInt('fuelUpgradeCount', fuelUpgradeCount);
     await prefs.setDouble('maxFuel', maxFuel);
+    await prefs.setInt('maxLives', maxLives);
     await prefs.setStringList('ownedCharacters', ownedCharacters);
   }
 
@@ -158,10 +164,21 @@ class _ShopState extends State<Shop> {
     return false;
   }
 
+  bool _isMaxedOut(ShopItem item) {
+    if (item.type == ShopItemType.fuelUpgrade) {
+      return maxFuel >= 200;
+    }
+    if (item.type == ShopItemType.healthUpgrade) {
+      return maxLives >= 8; // Límite razonable para vidas
+    }
+    return false;
+  }
+
   void _showPurchaseDialog(ShopItem item) {
     final price = _calculatePrice(item);
     final canAfford = coinBank >= price;
     final alreadyOwned = _isItemOwned(item);
+    final isMaxed = _isMaxedOut(item);
 
     showDialog(
       context: context,
@@ -213,6 +230,15 @@ class _ShopState extends State<Shop> {
                     color: Colors.green,
                   ),
                 )
+              else if (isMaxed)
+                Text(
+                  'MAX LEVEL REACHED',
+                  style: TextStyle(
+                    fontFamily: 'PressStart',
+                    fontSize: 12,
+                    color: Colors.blue,
+                  ),
+                )
               else if (!canAfford)
                 Text(
                   'NOT ENOUGH COINS',
@@ -249,7 +275,7 @@ class _ShopState extends State<Shop> {
             ],
           ),
           actions: [
-            if (!alreadyOwned)
+            if (!alreadyOwned && !isMaxed)
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -263,7 +289,7 @@ class _ShopState extends State<Shop> {
                   ),
                 ),
               ),
-            if (!alreadyOwned && canAfford)
+            if (!alreadyOwned && !isMaxed && canAfford)
               TextButton(
                 onPressed: () {
                   _purchaseItem(item);
@@ -278,7 +304,7 @@ class _ShopState extends State<Shop> {
                   ),
                 ),
               ),
-            if (alreadyOwned || !canAfford)
+            if (alreadyOwned || !canAfford || isMaxed)
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -306,9 +332,10 @@ class _ShopState extends State<Shop> {
 
       if (item.type == ShopItemType.healthUpgrade) {
         healthUpgradeCount++;
+        maxLives++;
       } else if (item.type == ShopItemType.fuelUpgrade) {
         fuelUpgradeCount++;
-        maxFuel += 25;
+        maxFuel += 20;
       } else if (item.type == ShopItemType.character) {
         if (!ownedCharacters.contains(item.id)) {
           ownedCharacters.add(item.id);
@@ -607,6 +634,7 @@ class _ShopState extends State<Shop> {
     final price = _calculatePrice(item);
     final canAfford = coinBank >= price;
     final isOwned = _isItemOwned(item);
+    final isMaxed = _isMaxedOut(item);
     final scale = _currentPage == index ? 1.0 : 0.88;
 
     return TweenAnimationBuilder(
@@ -711,6 +739,26 @@ class _ShopState extends State<Shop> {
                           fontFamily: 'PressStart',
                           fontSize: isPortrait ? 14 : 9,
                           color: Colors.green,
+                        ),
+                      ),
+                    )
+                  else if (isMaxed)
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isPortrait ? 15 : 10,
+                        vertical: isPortrait ? 8 : 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.2),
+                        border: Border.all(color: Colors.blue, width: 2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'MAXED',
+                        style: TextStyle(
+                          fontFamily: 'PressStart',
+                          fontSize: isPortrait ? 14 : 9,
+                          color: Colors.blue,
                         ),
                       ),
                     )

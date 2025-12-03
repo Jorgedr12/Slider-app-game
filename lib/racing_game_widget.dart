@@ -480,6 +480,8 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                             '${_game.obstaclesAvoided}',
                           ),
                           const SizedBox(height: 10),
+                          _buildFinalStat('MONEDAS', '${_game.coinsCollected}'),
+                          const SizedBox(height: 10),
                           _buildFinalStat(
                             'VEL. MÁXIMA',
                             '${_game.maxSpeed.toStringAsFixed(0)} km/h',
@@ -543,6 +545,8 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                         'OBSTÁCULOS',
                         '${_game.obstaclesAvoided}',
                       ),
+                      const SizedBox(height: 15),
+                      _buildFinalStat('MONEDAS', '${_game.coinsCollected}'),
                       const SizedBox(height: 15),
                       _buildFinalStat(
                         'VEL. MÁXIMA',
@@ -614,7 +618,8 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
+        width: 200, // Ancho fijo para uniformidad
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
         decoration: BoxDecoration(
           color: color.withOpacity(0.2),
           border: Border.all(color: color, width: 2),
@@ -622,6 +627,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
           boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 10)],
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center, // Centrar contenido
           children: [
             Icon(icon, color: color, size: 24),
             const SizedBox(width: 10),
