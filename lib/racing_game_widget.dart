@@ -173,9 +173,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
             // HUD del juego (siempre visible cuando no está pausado)
             if (!_isPaused && !_isGameOver) _buildGameHUD(),
 
-            // Botón de pausa flotante
-            if (!_isPaused && !_isGameOver) _buildPauseButton(),
-
             // Botón de cambiar orientación
             if (!_isPaused && !_isGameOver && _shouldShowOrientationButton)
               _buildOrientationButton(),
@@ -203,6 +200,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
       right: 20,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Panel izquierdo - Stats
           Container(
@@ -278,93 +276,104 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
           ),
 
           // Panel derecho - Gasolina
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.7),
-              border: Border.all(
-                color: _game.fuel > 20
-                    ? Colors.green.withOpacity(0.6)
-                    : Colors.red.withOpacity(0.8),
-                width: 2,
-              ),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: (_game.fuel > 20 ? Colors.green : Colors.red)
-                      .withOpacity(0.3),
-                  blurRadius: 10,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 10,
                 ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Monedas
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.monetization_on,
-                      color: Colors.amber,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${_game.coinsCollected}',
-                      style: const TextStyle(
-                        fontFamily: 'PressStart',
-                        fontSize: 16,
-                        color: Colors.amber,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.local_gas_station,
-                      color: _game.fuel > 20 ? Colors.green : Colors.red,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${_game.fuel.toStringAsFixed(0)}%',
-                      style: TextStyle(
-                        fontFamily: 'PressStart',
-                        fontSize: 16,
-                        color: _game.fuel > 20 ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                // Barra de gasolina
-                Container(
-                  width: 120,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[800],
-                    borderRadius: BorderRadius.circular(4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  border: Border.all(
+                    color: _game.fuel > 20
+                        ? Colors.green.withOpacity(0.6)
+                        : Colors.red.withOpacity(0.8),
+                    width: 2,
                   ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: (_game.fuel / 100).clamp(0.0, 1.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: _game.fuel > 20
-                              ? [Colors.green, Colors.lightGreen]
-                              : [Colors.red, Colors.orange],
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_game.fuel > 20 ? Colors.green : Colors.red)
+                          .withOpacity(0.3),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Monedas
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.monetization_on,
+                          color: Colors.amber,
+                          size: 20,
                         ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_game.coinsCollected}',
+                          style: const TextStyle(
+                            fontFamily: 'PressStart',
+                            fontSize: 16,
+                            color: Colors.amber,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.local_gas_station,
+                          color: _game.fuel > 20 ? Colors.green : Colors.red,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_game.fuel.toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            fontFamily: 'PressStart',
+                            fontSize: 16,
+                            color: _game.fuel > 20 ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    // Barra de gasolina
+                    Container(
+                      width: 120,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
                         borderRadius: BorderRadius.circular(4),
                       ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: (_game.fuel / 100).clamp(0.0, 1.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: _game.fuel > 20
+                                  ? [Colors.green, Colors.lightGreen]
+                                  : [Colors.red, Colors.orange],
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 10),
+              _buildPauseButton(),
+            ],
           ),
         ],
       ),
@@ -372,27 +381,23 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   }
 
   Widget _buildPauseButton() {
-    return Positioned(
-      bottom: 30,
-      right: 20,
-      child: GestureDetector(
-        onTap: _togglePause,
-        child: Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.7),
-            border: Border.all(color: Colors.orangeAccent, width: 3),
-            borderRadius: BorderRadius.circular(50),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.orangeAccent.withOpacity(0.5),
-                blurRadius: 15,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: const Icon(Icons.pause, color: Colors.orangeAccent, size: 35),
+    return GestureDetector(
+      onTap: _togglePause,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.7),
+          border: Border.all(color: Colors.orangeAccent, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orangeAccent.withOpacity(0.5),
+              blurRadius: 8,
+              spreadRadius: 1,
+            ),
+          ],
         ),
+        child: const Icon(Icons.pause, color: Colors.orangeAccent, size: 24),
       ),
     );
   }
