@@ -27,17 +27,20 @@ class AudioManager {
   double get effectiveMusicVolume => masterVolume * musicVolume;
   double get effectiveSfxVolume => masterVolume * sfxVolume;
 
+  /// Registra un reproductor activo para música.
   void setBytesPlayer(AudioPlayer player) {
     _currentMusicPlayer = player;
     _updateActivePlayerVolume();
   }
 
+  /// Limpia el player actual si coincide.
   void clearCurrentPlayer([AudioPlayer? player]) {
     if (player == null || identical(_currentMusicPlayer, player)) {
       _currentMusicPlayer = null;
     }
   }
 
+  /// Actualiza el volumen del player activo.
   void _updateActivePlayerVolume() {
     if (_currentMusicPlayer != null) {
       try {
@@ -49,7 +52,7 @@ class AudioManager {
     }
   }
 
-  /// Pause the currently registered music player, if any.
+  /// Pausar música.
   void pauseCurrent() {
     final p = _currentMusicPlayer;
     if (p != null) {
@@ -59,7 +62,7 @@ class AudioManager {
     }
   }
 
-  /// Resume the currently registered music player, if any.
+  /// Reanudar música.
   void resumeCurrent() {
     final p = _currentMusicPlayer;
     if (p != null) {
@@ -69,7 +72,7 @@ class AudioManager {
     }
   }
 
-  /// Stop the currently registered music player, if any.
+  /// Detener música.
   void stopCurrent() {
     final p = _currentMusicPlayer;
     if (p != null) {
@@ -77,6 +80,18 @@ class AudioManager {
         p.stop();
       } catch (_) {}
     }
+  }
+
+  /// Reproduce un efecto de sonido respetando volumen master y sfx.
+  Future<void> playSfx(String assetPath) async {
+    try {
+      final player = AudioPlayer();
+      await player.setVolume(effectiveSfxVolume);
+      await player.play(AssetSource(assetPath));
+
+      // Liberar player al terminar  
+      player.onPlayerComplete.listen((_) => player.dispose());
+    } catch (_) {}
   }
 
   Future<void> setMasterVolume(double value) async {
