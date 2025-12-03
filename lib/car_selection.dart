@@ -1,5 +1,4 @@
 import 'package:audioplayers/audioplayers.dart';
-import 'package:audioplayers_platform_interface/audioplayers_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/audio_manager.dart';
@@ -253,9 +252,6 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       _showLockedDialog();
       return;
     }
-
-    // Reproduce el SFX del personaje actual al presionar SELECT
-    await _playCurrentSfx();
 
     final prefs = await SharedPreferences.getInstance();
 
