@@ -36,7 +36,7 @@ class RacingGame extends FlameGame
   // Velocidad del juego
   double gameSpeed = 400.0;
   double baseSpeed = 400.0;
-  double speedIncrement = 10.0;
+  double speedIncrement = 20.0; // Aumentado para acelerar más rápido
 
   // ⭐ NUEVO: Configuración de tamaños
   late GameSizeConfig sizeConfig;
@@ -157,8 +157,9 @@ class RacingGame extends FlameGame
       double speedFactor = (gameSpeed - baseSpeed) / 600.0; // 0.0 a 1.0 aprox
       speedFactor = speedFactor.clamp(0.0, 1.0);
 
-      double baseInterval = isVertical ? 1.5 : 1.0;
-      double minInterval = isVertical ? 0.5 : 0.3;
+      // ⭐ AUMENTO DE DIFICULTAD: Intervalos reducidos para más obstáculos
+      double baseInterval = isVertical ? 1.0 : 0.8;
+      double minInterval = isVertical ? 0.4 : 0.25;
 
       _currentSpawnInterval =
           baseInterval - (speedFactor * (baseInterval - minInterval));
@@ -237,7 +238,7 @@ class RacingGame extends FlameGame
   void _resetSpawnTimer() {
     // Reiniciar contadores de spawn
     _timeSinceLastSpawn = 0;
-    _currentSpawnInterval = isVertical ? 1.5 : 1.0;
+    _currentSpawnInterval = isVertical ? 1.0 : 0.8;
   }
 
   bool _isInRoadBounds(PositionComponent component) {
@@ -1095,12 +1096,37 @@ class ObstacleComponent extends PositionComponent
 
   void _checkCollision() {
     final playerCar = game.playerCar;
-
-    // Usar las hitboxes ajustadas
     final Rect playerRect = playerCar.getHitboxRect();
-    final Rect obstacleRect = getHitboxRect();
 
-    if (playerRect.overlaps(obstacleRect)) {
+    bool collides = false;
+
+    if (type == 'cone') {
+      // ⭐ Hitbox triangular aproximada (2 rectángulos)
+      // 1. Parte superior (estrecha)
+      final topRect = Rect.fromCenter(
+        center: position.toOffset() + Offset(0, -size.y * 0.25),
+        width: size.x * 0.3,
+        height: size.y * 0.5,
+      );
+      // 2. Base (ancha)
+      final bottomRect = Rect.fromCenter(
+        center: position.toOffset() + Offset(0, size.y * 0.25),
+        width: size.x * 0.85,
+        height: size.y * 0.5,
+      );
+
+      if (playerRect.overlaps(topRect) || playerRect.overlaps(bottomRect)) {
+        collides = true;
+      }
+    } else {
+      // Comportamiento estándar para otros obstáculos
+      final Rect obstacleRect = getHitboxRect();
+      if (playerRect.overlaps(obstacleRect)) {
+        collides = true;
+      }
+    }
+
+    if (collides) {
       game.fuel -= 10;
       game.loseLife(1);
       // SFX: choque

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:slider_app/menu.dart';
 import 'package:slider_app/racing_game_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,6 +16,9 @@ import 'ranking.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Ocultar barra de estado y navegación (Modo Inmersivo)
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   // Load environment variables from .env
   await dotenv.load(fileName: ".env");
