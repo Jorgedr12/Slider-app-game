@@ -29,14 +29,14 @@ class RankingPage extends StatelessWidget {
         ),
         child: SafeArea(
           child: isPortrait
-              ? _buildPortraitLayout(ranking)
+              ? _buildPortraitLayout(ranking, context)
               : _buildLandscapeLayout(ranking),
         ),
       ),
     );
   }
 
-  Widget _buildPortraitLayout(List<Map<String, dynamic>> ranking) {
+  Widget _buildPortraitLayout(List<Map<String, dynamic>> ranking, context) {
     return Column(
       children: [
         Padding(
@@ -45,7 +45,9 @@ class RankingPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Navigator.pop(context);
+                },
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
