@@ -186,10 +186,7 @@ class _MenuState extends State<Menu> with WidgetsBindingObserver {
         _menuText(
           'RANKING',
           onTap: () {
-            _audioPlayer.stop();
-            Navigator.pushNamed(context, '/ranking').then((_) {
-              _playBackgroundMusic();
-            });
+            Navigator.pushNamed(context, '/ranking').then((_) {});
           },
         ),
         const SizedBox(height: 1),
@@ -203,10 +200,7 @@ class _MenuState extends State<Menu> with WidgetsBindingObserver {
         _menuText(
           'CREDITS',
           onTap: () {
-            _audioPlayer.stop();
-            Navigator.pushNamed(context, '/credits').then((_) {
-              _playBackgroundMusic();
-            });
+            Navigator.pushNamed(context, '/credits').then((_) {});
           },
         ),
       ],
