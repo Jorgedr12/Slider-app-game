@@ -9,8 +9,8 @@ class CarData {
   final String carGameSprite;
   final String driverImagePath;
   final String driverName;
-  final String? characterId; // ID para verificar si está desbloqueado
-  final String sfxPath; // SFX único para cada personaje
+  final String? characterId;
+  final String sfxPath;
 
   CarData({
     required this.name,
@@ -19,7 +19,7 @@ class CarData {
     required this.driverImagePath,
     required this.driverName,
     required this.sfxPath,
-    this.characterId, // null = desbloqueado por defecto
+    this.characterId,
   });
 
   Map<String, String> toMap() {
@@ -121,26 +121,27 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     _loadOwnedCharacters();
   }
 
+  @override
+  void dispose() {
+    _currentSfxPlayer?.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadOwnedCharacters() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _ownedCharacters = prefs.getStringList('ownedCharacters') ?? [];
       _isLoading = false;
     });
-    // Reproduce el SFX del personaje actual al cargar la pantalla
     await _playCurrentSfx();
   }
 
   bool _isCarUnlocked(CarData car) {
-    // Si no tiene characterId, está desbloqueado por defecto
     if (car.characterId == null) return true;
-
-    // Verificar si el personaje está en la lista de comprados
     return _ownedCharacters.contains(car.characterId);
   }
 
   Future<void> _playCurrentSfx() async {
-    // Cancela el SFX anterior si existe
     if (_currentSfxPlayer != null) {
       try {
         await _currentSfxPlayer!.stop();
@@ -148,7 +149,6 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
       } catch (_) {}
       _currentSfxPlayer = null;
     }
-    // Reproduce el SFX del personaje actual
     final player = AudioPlayer();
     await player.setVolume(AudioManager.instance.effectiveSfxVolume);
     await player.play(AssetSource(_cars[_currentCarIndex].sfxPath));
@@ -247,21 +247,17 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
   Future<void> _selectCar() async {
     final currentCar = _cars[_currentCarIndex];
 
-    // Verificar si el carro está desbloqueado
     if (!_isCarUnlocked(currentCar)) {
       _showLockedDialog();
       return;
     }
 
     final prefs = await SharedPreferences.getInstance();
-
-    // Guardar el CarData
     final carMap = currentCar.toMap();
     carMap.forEach((key, value) async {
       await prefs.setString('selected_car_$key', value);
     });
 
-    // Navegar a la selección de pista
     Navigator.pushNamed(context, '/track_selection');
   }
 
@@ -275,8 +271,12 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
 
     final currentCar = _cars[_currentCarIndex];
     final isUnlocked = _isCarUnlocked(currentCar);
+    final size = MediaQuery.of(context).size;
     final orientation = MediaQuery.of(context).orientation;
     final isPortrait = orientation == Orientation.portrait;
+
+    // Detectar si es desktop (ancho > 900px)
+    final isDesktop = size.width > 900;
 
     return Scaffold(
       body: Container(
@@ -290,15 +290,15 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
                 fit: BoxFit.cover,
               ),
             ),
-
             Positioned.fill(
               child: Container(color: Colors.black.withOpacity(0.4)),
             ),
-
             SafeArea(
-              child: isPortrait
-                  ? _buildPortraitLayout(currentCar, isUnlocked)
-                  : _buildLandscapeLayout(currentCar, isUnlocked),
+              child: isDesktop
+                  ? _buildDesktopLayout(currentCar, isUnlocked)
+                  : (isPortrait
+                        ? _buildPortraitLayout(currentCar, isUnlocked)
+                        : _buildLandscapeLayout(currentCar, isUnlocked)),
             ),
           ],
         ),
@@ -306,10 +306,472 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     );
   }
 
+  // Desktop
+  Widget _buildDesktopLayout(CarData currentCar, bool isUnlocked) {
+    return Stack(
+      children: [
+        // Botón de regreso (top left)
+        Positioned(
+          top: 20,
+          left: 20,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: IconButton(
+              icon: Icon(Icons.arrow_back, color: Colors.white, size: 36),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              hoverColor: Colors.white.withOpacity(0.2),
+            ),
+          ),
+        ),
+
+        // Título centrado en la parte superior
+        Positioned(
+          top: 20,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              decoration: BoxDecoration(
+                color: Colors.red[700],
+                border: Border.all(color: Colors.white, width: 3),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 15,
+                    offset: Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Text(
+                'SELECT A MODEL',
+                style: TextStyle(
+                  fontFamily: 'PressStart',
+                  fontSize: 32,
+                  color: Colors.white,
+                  letterSpacing: 4,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(3, 3),
+                      color: Colors.black,
+                      blurRadius: 5,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Contenido principal centrado
+        Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 1400),
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 80),
+
+                // Fila principal: Info + Carro
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Panel de información del conductor (izquierda)
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 30),
+                          padding: const EdgeInsets.all(30),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.85),
+                            border: Border.all(
+                              color: isUnlocked
+                                  ? Colors.grey[600]!
+                                  : Colors.red,
+                              width: 4,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.6),
+                                blurRadius: 20,
+                                offset: Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Nombre del vehículo
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (!isUnlocked) ...[
+                                    Icon(
+                                      Icons.lock,
+                                      color: Colors.red,
+                                      size: 24,
+                                    ),
+                                    const SizedBox(width: 12),
+                                  ],
+                                  Flexible(
+                                    child: Text(
+                                      currentCar.name,
+                                      style: TextStyle(
+                                        fontFamily: 'PressStart',
+                                        fontSize: 20,
+                                        color: isUnlocked
+                                            ? Colors.white
+                                            : Colors.red,
+                                        letterSpacing: 2,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 40),
+
+                              // Imagen del conductor
+                              Stack(
+                                children: [
+                                  Container(
+                                    width: 180,
+                                    height: 180,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 4,
+                                      ),
+                                      color: Colors.grey[900],
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.5),
+                                          blurRadius: 15,
+                                          offset: Offset(0, 5),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: ColorFiltered(
+                                        colorFilter: isUnlocked
+                                            ? ColorFilter.mode(
+                                                Colors.transparent,
+                                                BlendMode.multiply,
+                                              )
+                                            : ColorFilter.mode(
+                                                Colors.black.withOpacity(0.7),
+                                                BlendMode.darken,
+                                              ),
+                                        child: Image.asset(
+                                          currentCar.driverImagePath,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  if (!isUnlocked)
+                                    Positioned.fill(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.5),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.lock,
+                                            color: Colors.red,
+                                            size: 70,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 25),
+
+                              // Nombre del conductor
+                              Column(
+                                children: [
+                                  Text(
+                                    'DRIVER',
+                                    style: TextStyle(
+                                      fontFamily: 'PressStart',
+                                      fontSize: 14,
+                                      color: Colors.grey[400],
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    currentCar.driverName,
+                                    style: TextStyle(
+                                      fontFamily: 'PressStart',
+                                      fontSize: 18,
+                                      color: isUnlocked
+                                          ? Colors.white
+                                          : Colors.red,
+                                      letterSpacing: 1,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Visualización del carro con flechas (derecha)
+                      Expanded(
+                        flex: 5,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Imagen del carro
+                            Center(
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    constraints: BoxConstraints(
+                                      maxWidth: 700,
+                                      maxHeight: 400,
+                                    ),
+                                    child: ColorFiltered(
+                                      colorFilter: isUnlocked
+                                          ? ColorFilter.mode(
+                                              Colors.transparent,
+                                              BlendMode.multiply,
+                                            )
+                                          : ColorFilter.mode(
+                                              Colors.black.withOpacity(0.5),
+                                              BlendMode.darken,
+                                            ),
+                                      child: Image.asset(
+                                        currentCar.carImagePath,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                  ),
+                                  if (!isUnlocked)
+                                    Icon(
+                                      Icons.lock,
+                                      color: Colors.red,
+                                      size: 120,
+                                      shadows: [
+                                        Shadow(
+                                          offset: Offset(4, 4),
+                                          color: Colors.black,
+                                          blurRadius: 15,
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            // Flechas de navegación
+                            Positioned.fill(
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: IconButton(
+                                        icon: Icon(
+                                          Icons.arrow_back_ios,
+                                          color: Colors.yellow,
+                                          size: 80,
+                                          shadows: [
+                                            Shadow(
+                                              offset: Offset(3, 3),
+                                              color: Colors.black,
+                                              blurRadius: 5,
+                                            ),
+                                          ],
+                                        ),
+                                        onPressed: _previousCar,
+                                        padding: const EdgeInsets.all(25),
+                                        hoverColor: Colors.yellow.withOpacity(
+                                          0.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: IconButton(
+                                        icon: Icon(
+                                          Icons.arrow_forward_ios,
+                                          color: Colors.yellow,
+                                          size: 80,
+                                          shadows: [
+                                            Shadow(
+                                              offset: Offset(3, 3),
+                                              color: Colors.black,
+                                              blurRadius: 5,
+                                            ),
+                                          ],
+                                        ),
+                                        onPressed: _nextCar,
+                                        padding: const EdgeInsets.all(25),
+                                        hoverColor: Colors.yellow.withOpacity(
+                                          0.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                // Botón SELECT/LOCKED e indicadores
+                Column(
+                  children: [
+                    // Botón principal
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: _selectCar,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 80,
+                            vertical: 25,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isUnlocked
+                                ? Colors.green[700]
+                                : Colors.red[700],
+                            border: Border.all(color: Colors.white, width: 4),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.6),
+                                blurRadius: 20,
+                                offset: Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!isUnlocked) ...[
+                                Icon(Icons.lock, color: Colors.white, size: 32),
+                                const SizedBox(width: 15),
+                              ],
+                              Text(
+                                isUnlocked ? 'SELECT' : 'LOCKED',
+                                style: TextStyle(
+                                  fontFamily: 'PressStart',
+                                  fontSize: 32,
+                                  color: Colors.white,
+                                  letterSpacing: 4,
+                                  shadows: [
+                                    Shadow(
+                                      offset: Offset(3, 3),
+                                      color: Colors.black,
+                                      blurRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // Indicadores de página
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(_cars.length, (index) {
+                        final isCurrentUnlocked = _isCarUnlocked(_cars[index]);
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _currentCarIndex == index
+                                ? (isCurrentUnlocked
+                                      ? Colors.yellow
+                                      : Colors.red)
+                                : (isCurrentUnlocked
+                                      ? Colors.grey[600]
+                                      : Colors.grey[800]),
+                            border: Border.all(
+                              color: isCurrentUnlocked
+                                  ? Colors.white
+                                  : Colors.red.withOpacity(0.5),
+                              width: 2.5,
+                            ),
+                            boxShadow: _currentCarIndex == index
+                                ? [
+                                    BoxShadow(
+                                      color:
+                                          (isCurrentUnlocked
+                                                  ? Colors.yellow
+                                                  : Colors.red)
+                                              .withOpacity(0.6),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPortraitLayout(CarData currentCar, bool isUnlocked) {
     return Column(
       children: [
-        // Botón de regreso
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -323,10 +785,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
             ],
           ),
         ),
-
         const SizedBox(height: 10),
-
-        // Título "SELECT A MODEL"
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 15),
@@ -355,10 +814,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
             textAlign: TextAlign.center,
           ),
         ),
-
         const SizedBox(height: 30),
-
-        // Panel con nombre del carro y conductor
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(15),
@@ -393,9 +849,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 15),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -441,9 +895,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
                         ),
                     ],
                   ),
-
                   const SizedBox(width: 20),
-
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -471,10 +923,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
             ],
           ),
         ),
-
         const Spacer(),
-
-        // Carro con flechas de navegación
         Container(
           height: 250,
           child: Stack(
