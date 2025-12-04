@@ -105,15 +105,10 @@ class _ShopState extends State<Shop> {
   Future<void> _playShopMusic() async {
     try {
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-
       AudioManager.instance.setBytesPlayer(_audioPlayer);
-
       await _audioPlayer.setVolume(AudioManager.instance.effectiveMusicVolume);
-
       await _audioPlayer.play(AssetSource('music/shop_theme.m4a'));
-    } catch (e) {
-      debugPrint('Error al reproducir música de la tienda: $e');
-    }
+    } catch (e) {}
   }
 
   @override
@@ -123,81 +118,43 @@ class _ShopState extends State<Shop> {
     super.dispose();
   }
 
-  /// ⭐ CARGA DE DATOS - Lee desde SharedPreferences
   Future<void> _loadPlayerData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
       setState(() {
-        // Cargar monedas
         coinBank = prefs.getInt('coin_bank') ?? 0;
-
-        // Cargar contadores de mejoras
         healthUpgradeCount = prefs.getInt('healthUpgradeCount') ?? 0;
         fuelUpgradeCount = prefs.getInt('fuelUpgradeCount') ?? 0;
-
-        // Recalcular valores máximos basados en mejoras
-        // IMPORTANTE: Usar la misma fórmula que en racing_game.dart
         maxFuel = 100.0 + (fuelUpgradeCount * 20.0);
         maxLives = 3 + healthUpgradeCount;
-
-        // Cargar personajes comprados
         ownedCharacters = prefs.getStringList('ownedCharacters') ?? [];
       });
-
-      debugPrint('📊 Datos cargados en Shop:');
-      debugPrint('   Monedas: $coinBank');
-      debugPrint(
-        '   Health Upgrades: $healthUpgradeCount (Max Lives: $maxLives)',
-      );
-      debugPrint('   Fuel Upgrades: $fuelUpgradeCount (Max Fuel: $maxFuel)');
-      debugPrint('   Personajes: ${ownedCharacters.length}');
     } catch (e) {
-      debugPrint('❌ Error cargando datos del jugador: $e');
+      debugPrint('Error cargando datos del jugador: $e');
     }
   }
 
-  /// ⭐ GUARDADO DE DATOS - Escribe en SharedPreferences
   Future<void> _savePlayerData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // Guardar monedas
       await prefs.setInt('coin_bank', coinBank);
-
-      // ⭐ CRÍTICO: Guardar contadores de mejoras (incrementados)
       await prefs.setInt('healthUpgradeCount', healthUpgradeCount);
       await prefs.setInt('fuelUpgradeCount', fuelUpgradeCount);
-
-      // Guardar valores máximos recalculados
       await prefs.setDouble('maxFuel', maxFuel);
       await prefs.setInt('maxLives', maxLives);
-
-      // Guardar personajes
       await prefs.setStringList('ownedCharacters', ownedCharacters);
-
-      debugPrint('💾 Datos guardados en Shop:');
-      debugPrint('   Health Upgrades: $healthUpgradeCount');
-      debugPrint('   Fuel Upgrades: $fuelUpgradeCount');
-      debugPrint('   Max Fuel: $maxFuel');
-      debugPrint('   Max Lives: $maxLives');
     } catch (e) {
-      debugPrint('❌ Error guardando datos del jugador: $e');
+      debugPrint('Error guardando datos del jugador: $e');
     }
   }
 
-  /// ⭐ CÁLCULO DE PRECIO - Se duplica con cada compra (1 << n es 2^n)
   int _calculatePrice(ShopItem item) {
     if (item.type == ShopItemType.healthUpgrade) {
-      // Precio = basePrice * 2^healthUpgradeCount
-      // 25, 50, 100, 200, 400, 800, 1600, 3200...
       return item.basePrice * (1 << healthUpgradeCount);
     } else if (item.type == ShopItemType.fuelUpgrade) {
-      // Precio = basePrice * 2^fuelUpgradeCount
-      // 25, 50, 100, 200, 400, 800, 1600, 3200...
       return item.basePrice * (1 << fuelUpgradeCount);
     }
-    // Personajes tienen precio fijo
     return item.basePrice;
   }
 
@@ -208,15 +165,12 @@ class _ShopState extends State<Shop> {
     return false;
   }
 
-  /// ⭐ LÍMITES MÁXIMOS para evitar valores infinitos
   bool _isMaxedOut(ShopItem item) {
     if (item.type == ShopItemType.fuelUpgrade) {
-      // Límite: 5 mejoras = 100 + (5*20) = 200 de combustible
-      return fuelUpgradeCount >= 5; // o maxFuel >= 200
+      return fuelUpgradeCount >= 5;
     }
     if (item.type == ShopItemType.healthUpgrade) {
-      // Límite: 5 mejoras = 3 + 5 = 8 vidas
-      return healthUpgradeCount >= 5; // o maxLives >= 8
+      return healthUpgradeCount >= 5;
     }
     return false;
   }
@@ -371,46 +325,26 @@ class _ShopState extends State<Shop> {
     );
   }
 
-  /// ⭐ COMPRA DE ITEMS - Incrementa contadores y recalcula valores
   void _purchaseItem(ShopItem item) {
     final price = _calculatePrice(item);
 
     setState(() {
-      // Descontar monedas
       coinBank -= price;
 
       if (item.type == ShopItemType.healthUpgrade) {
-        // ⭐ INCREMENTAR CONTADOR en SharedPreferences
         healthUpgradeCount++;
-        // Recalcular valor máximo
         maxLives = 3 + healthUpgradeCount;
-
-        debugPrint('✅ Health Upgrade comprado!');
-        debugPrint('   Nivel: $healthUpgradeCount');
-        debugPrint('   Max Lives: $maxLives');
-        debugPrint('   Próximo precio: ${_calculatePrice(item)}');
       } else if (item.type == ShopItemType.fuelUpgrade) {
-        // ⭐ INCREMENTAR CONTADOR en SharedPreferences
         fuelUpgradeCount++;
-        // Recalcular valor máximo
         maxFuel = 100.0 + (fuelUpgradeCount * 20.0);
-
-        debugPrint('✅ Fuel Upgrade comprado!');
-        debugPrint('   Nivel: $fuelUpgradeCount');
-        debugPrint('   Max Fuel: $maxFuel');
-        debugPrint('   Próximo precio: ${_calculatePrice(item)}');
       } else if (item.type == ShopItemType.character) {
         if (!ownedCharacters.contains(item.id)) {
           ownedCharacters.add(item.id);
-          debugPrint('✅ Personaje comprado: ${item.name}');
         }
       }
     });
 
-    // ⭐ GUARDAR TODO en SharedPreferences
     _savePlayerData();
-
-    // Opcional: Reproducir sonido de compra
     AudioManager.instance.playSfx('sound effects/coin_recieved.m4a');
   }
 
@@ -418,6 +352,8 @@ class _ShopState extends State<Shop> {
   Widget build(BuildContext context) {
     final orientation = MediaQuery.of(context).orientation;
     final isPortrait = orientation == Orientation.portrait;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = screenWidth > 1200;
 
     return Scaffold(
       body: Container(
@@ -431,7 +367,11 @@ class _ShopState extends State<Shop> {
           ),
         ),
         child: SafeArea(
-          child: isPortrait ? _buildPortraitLayout() : _buildLandscapeLayout(),
+          child: isPortrait
+              ? _buildPortraitLayout()
+              : (isLargeScreen
+                    ? _buildDesktopLayout()
+                    : _buildLandscapeLayout()),
         ),
       ),
     );
@@ -442,13 +382,11 @@ class _ShopState extends State<Shop> {
       children: [
         Column(
           children: [
-            // Header con botón y monedas
             Padding(
               padding: const EdgeInsets.all(15),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Back button
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
@@ -465,8 +403,6 @@ class _ShopState extends State<Shop> {
                       ),
                     ),
                   ),
-
-                  // Coin display
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 15,
@@ -499,10 +435,7 @@ class _ShopState extends State<Shop> {
                 ],
               ),
             ),
-
             const SizedBox(height: 10),
-
-            // Title SHOP
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
               decoration: BoxDecoration(
@@ -520,10 +453,7 @@ class _ShopState extends State<Shop> {
                 ),
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // Item carousel - con altura limitada
             SizedBox(
               height: 450,
               child: PageView.builder(
@@ -538,10 +468,7 @@ class _ShopState extends State<Shop> {
                 },
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // Page indicators
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
@@ -560,7 +487,6 @@ class _ShopState extends State<Shop> {
                 ),
               ),
             ),
-
             const SizedBox(height: 30),
           ],
         ),
@@ -569,44 +495,31 @@ class _ShopState extends State<Shop> {
   }
 
   Widget _buildLandscapeLayout() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 1200;
-
     return Stack(
       children: [
-        // Back button (top left)
         Positioned(
-          top: isLargeScreen ? 25 : 15,
-          left: isLargeScreen ? 25 : 15,
+          top: 15,
+          left: 15,
           child: GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              padding: EdgeInsets.all(isLargeScreen ? 14 : 10),
+              padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.7),
                 border: Border.all(color: Colors.orange, width: 2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                Icons.arrow_back,
-                color: Colors.white,
-                size: isLargeScreen ? 28 : 20,
-              ),
+              child: Icon(Icons.arrow_back, color: Colors.white, size: 20),
             ),
           ),
         ),
-
-        // Title SHOP (top center)
         Positioned(
-          top: isLargeScreen ? 25 : 15,
+          top: 15,
           left: 0,
           right: 0,
           child: Center(
             child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: isLargeScreen ? 35 : 25,
-                vertical: isLargeScreen ? 14 : 10,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 25, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.8),
                 border: Border.all(color: Colors.orange, width: 2),
@@ -616,7 +529,7 @@ class _ShopState extends State<Shop> {
                 'SHOP',
                 style: TextStyle(
                   fontFamily: 'PressStart',
-                  fontSize: isLargeScreen ? 26 : 18,
+                  fontSize: 18,
                   color: Colors.white,
                   letterSpacing: 2,
                 ),
@@ -624,16 +537,11 @@ class _ShopState extends State<Shop> {
             ),
           ),
         ),
-
-        // Coin display (top right)
         Positioned(
-          top: isLargeScreen ? 25 : 15,
-          right: isLargeScreen ? 25 : 15,
+          top: 15,
+          right: 15,
           child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isLargeScreen ? 16 : 12,
-              vertical: isLargeScreen ? 10 : 8,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.8),
               border: Border.all(color: Colors.yellow, width: 2),
@@ -641,17 +549,13 @@ class _ShopState extends State<Shop> {
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.monetization_on,
-                  color: Colors.yellow,
-                  size: isLargeScreen ? 24 : 18,
-                ),
-                SizedBox(width: isLargeScreen ? 8 : 6),
+                Icon(Icons.monetization_on, color: Colors.yellow, size: 18),
+                SizedBox(width: 6),
                 Text(
                   '$coinBank',
                   style: TextStyle(
                     fontFamily: 'PressStart',
-                    fontSize: isLargeScreen ? 17 : 13,
+                    fontSize: 13,
                     color: Colors.yellow,
                   ),
                 ),
@@ -659,18 +563,13 @@ class _ShopState extends State<Shop> {
             ),
           ),
         ),
-
-        // Shop items carousel (centered right)
         Positioned(
-          right: isLargeScreen ? 50 : 30,
-          top: isLargeScreen ? 120 : 80,
-          bottom: isLargeScreen ? 30 : 20,
-          width: isLargeScreen
-              ? MediaQuery.of(context).size.width * 0.55
-              : MediaQuery.of(context).size.width * 0.45,
+          right: 30,
+          top: 80,
+          bottom: 20,
+          width: MediaQuery.of(context).size.width * 0.45,
           child: Column(
             children: [
-              // Item carousel
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
@@ -684,10 +583,7 @@ class _ShopState extends State<Shop> {
                   },
                 ),
               ),
-
               const SizedBox(height: 15),
-
-              // Page indicators
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
@@ -710,6 +606,339 @@ class _ShopState extends State<Shop> {
           ),
         ),
       ],
+    );
+  }
+
+  // Desktop Layout
+  Widget _buildDesktopLayout() {
+    return Stack(
+      children: [
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 100,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.8),
+                  Colors.black.withOpacity(0.4),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+              child: Row(
+                children: [
+                  // Back button
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        border: Border.all(color: Colors.orange, width: 3),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orange.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+
+                  Expanded(
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 50,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.85),
+                          border: Border.all(color: Colors.orange, width: 3),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.orange.withOpacity(0.4),
+                              blurRadius: 20,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'SHOP',
+                          style: TextStyle(
+                            fontFamily: 'PressStart',
+                            fontSize: 18,
+                            color: Colors.white,
+                            letterSpacing: 4,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Coin display
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.85),
+                      border: Border.all(color: Colors.yellow, width: 3),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.yellow.withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.monetization_on,
+                          color: Colors.yellow,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '$coinBank',
+                          style: TextStyle(
+                            fontFamily: 'PressStart',
+                            fontSize: 24,
+                            color: Colors.yellow,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Grid
+        Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 1400),
+            padding: const EdgeInsets.only(top: 140, bottom: 40),
+            child: Column(
+              children: [
+                Expanded(
+                  child: GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 60),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 0.75,
+                      crossAxisSpacing: 30,
+                      mainAxisSpacing: 30,
+                    ),
+                    itemCount: _shopItems.length,
+                    itemBuilder: (context, index) {
+                      return _buildDesktopShopCard(_shopItems[index]);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Desktop Card
+  Widget _buildDesktopShopCard(ShopItem item) {
+    final price = _calculatePrice(item);
+    final canAfford = coinBank >= price;
+    final isOwned = _isItemOwned(item);
+    final isMaxed = _isMaxedOut(item);
+
+    return GestureDetector(
+      onTap: () => _showPurchaseDialog(item),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.85),
+          border: Border.all(
+            color: isOwned ? Colors.green : Colors.orange,
+            width: 3,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: (isOwned ? Colors.green : Colors.orange).withOpacity(0.4),
+              blurRadius: 20,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Item image
+            Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.grey[900],
+                border: Border.all(color: Colors.grey[700]!, width: 2),
+                borderRadius: BorderRadius.circular(12),
+                image: DecorationImage(
+                  image: AssetImage(item.imagePath),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Item name
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                item.name,
+                style: TextStyle(
+                  fontFamily: 'PressStart',
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Item description
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                item.description,
+                style: TextStyle(
+                  fontFamily: 'PressStart',
+                  fontSize: 11,
+                  color: Colors.grey[400],
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Price or status
+            if (isOwned)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.2),
+                  border: Border.all(color: Colors.green, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'OWNED',
+                  style: TextStyle(
+                    fontFamily: 'PressStart',
+                    fontSize: 16,
+                    color: Colors.green,
+                  ),
+                ),
+              )
+            else if (isMaxed)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.2),
+                  border: Border.all(color: Colors.blue, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'MAXED',
+                  style: TextStyle(
+                    fontFamily: 'PressStart',
+                    fontSize: 16,
+                    color: Colors.blue,
+                  ),
+                ),
+              )
+            else
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: canAfford
+                      ? Colors.yellow.withOpacity(0.2)
+                      : Colors.red.withOpacity(0.2),
+                  border: Border.all(
+                    color: canAfford ? Colors.yellow : Colors.red,
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.monetization_on,
+                      color: canAfford ? Colors.yellow : Colors.red,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$price',
+                      style: TextStyle(
+                        fontFamily: 'PressStart',
+                        fontSize: 18,
+                        color: canAfford ? Colors.yellow : Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+
+            // Level indicator
+            if (item.type == ShopItemType.healthUpgrade)
+              Text(
+                healthUpgradeCount > 0
+                    ? 'Level: $healthUpgradeCount/5'
+                    : 'Not upgraded',
+                style: TextStyle(
+                  fontFamily: 'PressStart',
+                  fontSize: 10,
+                  color: Colors.grey[500],
+                ),
+              ),
+            if (item.type == ShopItemType.fuelUpgrade)
+              Text(
+                fuelUpgradeCount > 0
+                    ? 'Level: $fuelUpgradeCount/5'
+                    : 'Not upgraded',
+                style: TextStyle(
+                  fontFamily: 'PressStart',
+                  fontSize: 10,
+                  color: Colors.grey[500],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -760,7 +989,7 @@ class _ShopState extends State<Shop> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Item image (real asset)
+                  // Item image
                   Container(
                     width: isLargeScreen ? 220 : (isPortrait ? 140 : 80),
                     height: isLargeScreen ? 220 : (isPortrait ? 140 : 80),
@@ -893,7 +1122,7 @@ class _ShopState extends State<Shop> {
 
                   SizedBox(height: isPortrait ? 10 : 5),
 
-                  // ⭐ Mostrar nivel actual de mejoras
+                  // Level indicator for upgrades
                   if (item.type == ShopItemType.healthUpgrade)
                     Text(
                       healthUpgradeCount > 0
