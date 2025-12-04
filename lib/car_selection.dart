@@ -95,7 +95,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
     CarData(
       name: 'DELOREAN',
       carImagePath: 'assets/cars/delorean_select.png',
-      carGameSprite: 'cars/microbus.png',
+      carGameSprite: 'cars/delorean.png',
       driverImagePath: 'assets/characters/cirett.png',
       driverName: 'CIRETT',
       characterId: 'character_cirett',

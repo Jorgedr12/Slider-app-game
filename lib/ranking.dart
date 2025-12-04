@@ -1,18 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class RankingPage extends StatelessWidget {
+class RankingPage extends StatefulWidget {
   const RankingPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> ranking = List.generate(10, (i) {
-      return {
-        "name": "Player ${i + 1}",
-        "score": (10000 - i * 527),
-        "maxSpeed": "${(180 - i * 5)} km/h",
-      };
-    });
+  State<RankingPage> createState() => _RankingPageState();
+}
 
+class _RankingPageState extends State<RankingPage> {
+  List<Map<String, dynamic>> ranking = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRanking();
+  }
+
+  Future<void> _fetchRanking() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      final response = await Supabase.instance.client
+          .from('Leaderboard')
+          .select('name, distance, max_speed')
+          .order('distance', ascending: false)
+          .limit(10);
+
+      setState(() {
+        ranking = List<Map<String, dynamic>>.from(response);
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error al cargar el ranking';
+        isLoading = false;
+      });
+      print('Error fetching ranking: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final orientation = MediaQuery.of(context).orientation;
     final isPortrait = orientation == Orientation.portrait;
 
@@ -29,14 +64,14 @@ class RankingPage extends StatelessWidget {
         ),
         child: SafeArea(
           child: isPortrait
-              ? _buildPortraitLayout(ranking, context)
-              : _buildLandscapeLayout(ranking),
+              ? _buildPortraitLayout(context)
+              : _buildLandscapeLayout(),
         ),
       ),
     );
   }
 
-  Widget _buildPortraitLayout(List<Map<String, dynamic>> ranking, context) {
+  Widget _buildPortraitLayout(BuildContext context) {
     return Column(
       children: [
         Padding(
@@ -93,20 +128,7 @@ class RankingPage extends StatelessWidget {
               border: Border.all(color: Colors.orange, width: 3),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: ranking.length,
-              itemBuilder: (context, index) {
-                final item = ranking[index];
-                return _buildRankingCard(
-                  position: index + 1,
-                  name: item["name"],
-                  score: item["score"],
-                  maxSpeed: item["maxSpeed"],
-                  isPortrait: true,
-                );
-              },
-            ),
+            child: _buildContent(isPortrait: true),
           ),
         ),
 
@@ -140,7 +162,7 @@ class RankingPage extends StatelessWidget {
     );
   }
 
-  Widget _buildLandscapeLayout(List<Map<String, dynamic>> ranking) {
+  Widget _buildLandscapeLayout() {
     return Builder(
       builder: (context) {
         final screenWidth = MediaQuery.of(context).size.width;
@@ -211,24 +233,102 @@ class RankingPage extends StatelessWidget {
                   border: Border.all(color: Colors.orange, width: 3),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: ListView.builder(
-                  padding: EdgeInsets.all(isLargeScreen ? 16 : 12),
-                  itemCount: ranking.length,
-                  itemBuilder: (context, index) {
-                    final item = ranking[index];
-                    return _buildRankingCard(
-                      position: index + 1,
-                      name: item["name"],
-                      score: item["score"],
-                      maxSpeed: item["maxSpeed"],
-                      isPortrait: false,
-                      isLargeScreen: isLargeScreen,
-                    );
-                  },
+                child: _buildContent(
+                  isPortrait: false,
+                  isLargeScreen: isLargeScreen,
                 ),
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildContent({required bool isPortrait, bool isLargeScreen = false}) {
+    if (isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Colors.orange),
+            SizedBox(height: 20),
+            Text(
+              'Cargando...',
+              style: TextStyle(
+                fontFamily: 'PressStart',
+                fontSize: 14,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 48),
+            SizedBox(height: 20),
+            Text(
+              errorMessage!,
+              style: TextStyle(
+                fontFamily: 'PressStart',
+                fontSize: 12,
+                color: Colors.red,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _fetchRanking,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(
+                'REINTENTAR',
+                style: TextStyle(
+                  fontFamily: 'PressStart',
+                  fontSize: 12,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (ranking.isEmpty) {
+      return Center(
+        child: Text(
+          'No hay datos\nen el ranking',
+          style: TextStyle(
+            fontFamily: 'PressStart',
+            fontSize: 14,
+            color: Colors.white,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.all(isLargeScreen ? 16 : 12),
+      itemCount: ranking.length,
+      itemBuilder: (context, index) {
+        final item = ranking[index];
+        return _buildRankingCard(
+          position: index + 1,
+          name: item["name"] ?? "Unknown",
+          score: (item["distance"] ?? 0).toInt(),
+          maxSpeed: "${item["max_speed"] ?? 0} km/h",
+          isPortrait: isPortrait,
+          isLargeScreen: isLargeScreen,
         );
       },
     );
@@ -322,7 +422,7 @@ class RankingPage extends StatelessWidget {
                 SizedBox(height: isPortrait ? 8 : 6),
                 Row(
                   children: [
-                    // Score
+                    // Score (Distance)
                     Icon(
                       Icons.star,
                       color: Colors.yellow,
