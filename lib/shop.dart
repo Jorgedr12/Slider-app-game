@@ -30,7 +30,7 @@ class Shop extends StatefulWidget {
   State<Shop> createState() => _ShopState();
 }
 
-class _ShopState extends State<Shop> {
+class _ShopState extends State<Shop> with WidgetsBindingObserver {
   int coinBank = 0;
   int healthUpgradeCount = 0;
   int fuelUpgradeCount = 0;
@@ -42,6 +42,7 @@ class _ShopState extends State<Shop> {
   int _currentPage = 0;
 
   late AudioPlayer _audioPlayer;
+  bool _wasPlaying = false;
 
   final List<ShopItem> _shopItems = [
     ShopItem(
@@ -89,6 +90,7 @@ class _ShopState extends State<Shop> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _audioPlayer = AudioPlayer();
     _playShopMusic();
     _loadPlayerData();
@@ -113,9 +115,26 @@ class _ShopState extends State<Shop> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _audioPlayer.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      if (_audioPlayer.state == PlayerState.playing) {
+        _audioPlayer.pause();
+        _wasPlaying = true;
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_wasPlaying) {
+        _audioPlayer.resume();
+        _wasPlaying = false;
+      }
+    }
   }
 
   Future<void> _loadPlayerData() async {

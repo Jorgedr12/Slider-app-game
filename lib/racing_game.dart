@@ -612,6 +612,11 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   String trackName;
   double gameSpeed = 200.0;
   double scrollOffset = 0;
+  double tileHeight = 512.0; // Default fallback
+  double tileWidth = 512.0; // Default fallback
+  // ⭐ Factor de superposición: Usar el 80% de la imagen para el loop
+  // Esto significa que las imágenes se solaparán un 20%
+  double overlapFactor = 0.80;
 
   Sprite? roadSprite;
   Sprite? leftSideSprite;
@@ -627,7 +632,16 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
       roadSprite = await Sprite.load('escenarios/$trackName/road.png');
       leftSideSprite = await Sprite.load('escenarios/$trackName/left.png');
       rightSideSprite = await Sprite.load('escenarios/$trackName/right.png');
-      debugPrint('✅ Sprites de pista cargados: $trackName');
+
+      // ⭐ Usar el tamaño real de la imagen si está disponible
+      if (roadSprite != null) {
+        tileHeight = roadSprite!.srcSize.y;
+        tileWidth = roadSprite!.srcSize.x;
+      }
+
+      debugPrint(
+        '✅ Sprites de pista cargados: $trackName (Size: ${tileWidth.toInt()}x${tileHeight.toInt()})',
+      );
     } catch (e) {
       debugPrint('❌ Error cargando sprites de pista: $e');
     }
@@ -638,16 +652,12 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
     super.update(dt);
 
     if (!game.paused && !game.isGameOver) {
-      if (isVertical) {
-        scrollOffset += gameSpeed * dt;
-        if (scrollOffset > game.size.y) {
-          scrollOffset = 0;
-        }
-      } else {
-        scrollOffset += gameSpeed * dt;
-        if (scrollOffset > game.size.x) {
-          scrollOffset = 0;
-        }
+      scrollOffset += gameSpeed * dt;
+
+      // Resetear el offset periódicamente para evitar desbordamiento
+      // Usamos un valor grande seguro
+      if (scrollOffset > 128000) {
+        scrollOffset -= 128000;
       }
     }
   }
@@ -744,40 +754,57 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
     Color fallbackColor,
   ) {
     if (sprite != null) {
-      const double tile = 512.0;
+      // Calcular escala para ajustar al ancho de la carretera
+      // Vertical: rect.width es el ancho. Horizontal: rect.height es el ancho.
+      final double roadCrossSection = isVertical ? rect.width : rect.height;
+      final double scale = roadCrossSection / sprite.srcSize.x;
+
+      final double scaledRoadWidth = roadCrossSection;
+      final double scaledRoadLength = sprite.srcSize.y * scale;
+
+      // Altura efectiva para el loop (80% de la longitud de la imagen)
+      final double effectiveLength = scaledRoadLength * overlapFactor;
+
+      canvas.save();
+      canvas.clipRect(rect);
+
       if (isVertical) {
-        // Desplazamiento vertical
-        double startY = rect.top - (scrollOffset % tile);
-        for (double y = startY; y < rect.bottom; y += tile) {
-          for (double x = rect.left; x < rect.right; x += tile) {
-            final w = (x + tile > rect.right) ? rect.right - x : tile;
-            final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
-            if (w <= 0 || h <= 0) continue;
-            sprite.render(canvas, position: Vector2(x, y), size: Vector2(w, h));
+        // Desplazamiento vertical (Hacia abajo)
+        double startY =
+            rect.top + (scrollOffset % effectiveLength) - effectiveLength;
+        startY -= effectiveLength; // Extra tile arriba
+
+        for (double y = startY; y < rect.bottom; y += effectiveLength) {
+          for (double x = rect.left; x < rect.right; x += scaledRoadWidth) {
+            sprite.render(
+              canvas,
+              position: Vector2(x, y),
+              size: Vector2(scaledRoadWidth, scaledRoadLength),
+            );
           }
         }
       } else {
-        // Desplazamiento horizontal
-        double startX = rect.left - (scrollOffset % tile);
-        for (double x = startX; x < rect.right; x += tile) {
-          for (double y = rect.top; y < rect.bottom; y += tile) {
-            final w = (x + tile > rect.right) ? rect.right - x : tile;
-            final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
-            if (w <= 0 || h <= 0) continue;
+        // Desplazamiento horizontal (Hacia izquierda)
+        double startX = rect.left - (scrollOffset % effectiveLength);
 
-            // Rotar el sprite 90 grados para que la carretera se vea horizontal
+        for (double x = startX; x < rect.right; x += effectiveLength) {
+          for (double y = rect.top; y < rect.bottom; y += scaledRoadWidth) {
             canvas.save();
-            canvas.translate(x + w / 2, y + h / 2);
+            // Centro del tile en pantalla:
+            // X: x + mitad de longitud visual
+            // Y: y + mitad de ancho visual
+            canvas.translate(x + scaledRoadLength / 2, y + scaledRoadWidth / 2);
             canvas.rotate(-pi / 2);
             sprite.render(
               canvas,
-              position: Vector2(-h / 2, -w / 2),
-              size: Vector2(h, w),
+              position: Vector2(-scaledRoadWidth / 2, -scaledRoadLength / 2),
+              size: Vector2(scaledRoadWidth, scaledRoadLength),
             );
             canvas.restore();
           }
         }
       }
+      canvas.restore();
     } else {
       canvas.drawRect(rect, Paint()..color = fallbackColor);
     }
@@ -790,36 +817,53 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
     Color fallbackColor,
   ) {
     if (sprite != null) {
-      const double tile = 512.0;
+      // Calcular escala para ajustar al ancho del lado
+      // Vertical: rect.width es el ancho. Horizontal: rect.height es el ancho.
+      final double sideCrossSection = isVertical ? rect.width : rect.height;
+      final double scale = sideCrossSection / sprite.srcSize.x;
+
+      final double scaledSideWidth = sideCrossSection;
+      final double scaledSideLength = sprite.srcSize.y * scale;
+
+      final double effectiveLength = scaledSideLength * overlapFactor;
+
+      canvas.save();
+      canvas.clipRect(rect);
+
       if (isVertical) {
-        for (double x = rect.left; x < rect.right; x += tile) {
-          for (double y = rect.top; y < rect.bottom; y += tile) {
-            final w = (x + tile > rect.right) ? rect.right - x : tile;
-            final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
-            if (w <= 0 || h <= 0) continue;
-            sprite.render(canvas, position: Vector2(x, y), size: Vector2(w, h));
+        // Desplazamiento vertical (Hacia abajo)
+        double startY =
+            rect.top + (scrollOffset % effectiveLength) - effectiveLength;
+        startY -= effectiveLength; // Extra tile arriba
+
+        for (double x = rect.left; x < rect.right; x += scaledSideWidth) {
+          for (double y = startY; y < rect.bottom; y += effectiveLength) {
+            sprite.render(
+              canvas,
+              position: Vector2(x, y),
+              size: Vector2(scaledSideWidth, scaledSideLength),
+            );
           }
         }
       } else {
-        // En horizontal, rotamos los sprites de los lados
-        for (double x = rect.left; x < rect.right; x += tile) {
-          for (double y = rect.top; y < rect.bottom; y += tile) {
-            final w = (x + tile > rect.right) ? rect.right - x : tile;
-            final h = (y + tile > rect.bottom) ? rect.bottom - y : tile;
-            if (w <= 0 || h <= 0) continue;
+        // Desplazamiento horizontal (Hacia izquierda)
+        double startX = rect.left - (scrollOffset % effectiveLength);
 
+        for (double x = startX; x < rect.right; x += effectiveLength) {
+          for (double y = rect.top; y < rect.bottom; y += scaledSideWidth) {
             canvas.save();
-            canvas.translate(x + w / 2, y + h / 2);
+            canvas.translate(x + scaledSideLength / 2, y + scaledSideWidth / 2);
             canvas.rotate(-pi / 2);
             sprite.render(
               canvas,
-              position: Vector2(-h / 2, -w / 2),
-              size: Vector2(h, w),
+              position: Vector2(-scaledSideWidth / 2, -scaledSideLength / 2),
+              size: Vector2(scaledSideWidth, scaledSideLength),
             );
             canvas.restore();
           }
         }
       }
+      canvas.restore();
     } else {
       canvas.drawRect(rect, Paint()..color = fallbackColor);
     }
@@ -884,11 +928,17 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   ) {
     const dashHeight = 30.0;
     const gapHeight = 20.0;
+    const totalHeight = dashHeight + gapHeight;
 
-    double y = -scrollOffset % (dashHeight + gapHeight);
+    // Invertido: scrollOffset aumenta -> líneas bajan
+    double y = (scrollOffset % totalHeight) - totalHeight;
+
     while (y < height) {
-      canvas.drawLine(Offset(x, y), Offset(x, y + dashHeight), paint);
-      y += dashHeight + gapHeight;
+      if (y + dashHeight > 0) {
+        // Solo dibujar si es visible
+        canvas.drawLine(Offset(x, y), Offset(x, y + dashHeight), paint);
+      }
+      y += totalHeight;
     }
   }
 
