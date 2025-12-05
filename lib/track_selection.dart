@@ -574,7 +574,10 @@ class _TrackSelectionScreenState extends State<TrackSelectionScreen> {
                         _buildDriverInfoCompact(),
                         const SizedBox(height: 10),
                         _buildTrackList(),
-                        const Spacer(),
+
+                        /// 🔥 FIX PARA EVITAR OVERFLOW
+                        const Flexible(child: SizedBox.shrink()),
+
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 15),
                           child: _buildButtons(),
