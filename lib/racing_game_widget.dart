@@ -73,6 +73,24 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     _playGameMusic();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Detectar orientación y actualizar el juego automáticamente
+    final size = MediaQuery.of(context).size;
+    // Usar dimensiones para determinar orientación es más robusto
+    final isVertical = size.height > size.width;
+
+    // Solo actualizar si cambió y el juego ya está inicializado
+    // O si el tamaño cambió significativamente (para manejar el caso de rotación inversa)
+    if (_isVertical != isVertical) {
+      setState(() {
+        _isVertical = isVertical;
+        _game.setOrientation(_isVertical, newSize: size);
+      });
+    }
+  }
+
   Future<void> _loadLastPlayerName() async {
     final prefs = await SharedPreferences.getInstance();
     final lastPlayerName = prefs.getString('last_player_name') ?? '';

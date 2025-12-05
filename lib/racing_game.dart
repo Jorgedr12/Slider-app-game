@@ -300,19 +300,24 @@ class RacingGame extends FlameGame
     trackBackground.reset();
   }
 
-  void toggleOrientation() {
-    isVertical = !isVertical;
+  void setOrientation(bool vertical, {Size? newSize}) {
+    // Si el juego no ha cargado, solo actualizamos la bandera de orientación
+    // para que cuando cargue (onLoad) use el valor correcto.
+    if (!isLoaded) {
+      isVertical = vertical;
+      return;
+    }
+
+    // Actualizar siempre si nos dan un nuevo tamaño, incluso si la orientación no cambia
+    if (isVertical == vertical && newSize == null) return;
+
+    isVertical = vertical;
+
+    // Usar el nuevo tamaño si se proporciona, o el actual del juego
+    final Size targetSize = newSize ?? Size(size.x, size.y);
 
     // ⭐ NUEVO: Recalcular tamaños al cambiar orientación
-    sizeConfig = GameSizeConfig(
-      screenSize: Size(size.x, size.y),
-      isVertical: isVertical,
-    );
-
-    debugPrint(
-      '🔄 Orientación cambiada a: ${isVertical ? "Vertical" : "Horizontal"}',
-    );
-    debugPrint('   Nuevos carriles: ${sizeConfig.numberOfLanes}');
+    sizeConfig = GameSizeConfig(screenSize: targetSize, isVertical: isVertical);
 
     trackBackground.updateOrientation(isVertical);
     playerCar.updateOrientation(isVertical);
@@ -332,6 +337,10 @@ class RacingGame extends FlameGame
       f.updateOrientation(isVertical);
       if (!_isInRoadBounds(f)) f.removeFromParent();
     });
+  }
+
+  void toggleOrientation() {
+    setOrientation(!isVertical);
   }
 
   void addFuel(double amount) {
@@ -563,9 +572,10 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
 
     if (isVertical) {
       // Posicionar el carro centrado en la carretera
+      // Usamos config.screenSize.height porque game.size puede no haberse actualizado aún
       position = Vector2(
         config.sideWidth + config.roadWidth / 2,
-        game.size.y - (size.y / 2) - 20,
+        config.screenSize.height - size.y - 50, // Margen inferior de 50px
       );
     } else {
       // Horizontal: Carro a la izquierda, mirando a la derecha
