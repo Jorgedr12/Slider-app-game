@@ -701,6 +701,13 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
 
   // ⭐ Botón de orientación adaptado a la posición según layout
   Widget _buildOrientationButton() {
+    // Ocultar botón en móviles (Android/iOS) ya que tienen rotación automática
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS)) {
+      return const SizedBox.shrink();
+    }
+
     final orientation = MediaQuery.of(context).orientation;
     final isDeviceLandscape = orientation == Orientation.landscape;
 
