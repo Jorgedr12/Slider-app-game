@@ -28,7 +28,7 @@ class RacingGame extends FlameGame
 
   // Configuración
   bool isVertical = true;
-  bool debugMode = true; // ⭐ MODO DEBUG ACTIVADO
+  bool debugMode = false; // ⭐ MODO DEBUG DESACTIVADO
   String selectedCarSprite = 'cars/orange_car.png';
   String selectedTrack = 'montana';
   String currentTrackName = 'MONTE AKINA';
