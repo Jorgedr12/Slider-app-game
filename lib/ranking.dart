@@ -28,7 +28,7 @@ class _RankingPageState extends State<RankingPage> {
       });
 
       final response = await Supabase.instance.client
-          .from('Leaderboard')
+          .from('players')
           .select('name, distance, max_speed')
           .order('distance', ascending: false)
           .limit(10);
