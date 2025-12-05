@@ -28,7 +28,7 @@ class RacingGame extends FlameGame
 
   // Configuración
   bool isVertical = true;
-  bool debugMode = false; // ⭐ MODO DEBUG DESACTIVADO
+  bool debugMode = true; // ⭐ MODO DEBUG ACTIVADO
   String selectedCarSprite = 'cars/orange_car.png';
   String selectedTrack = 'montana';
   String currentTrackName = 'MONTE AKINA';
@@ -226,6 +226,7 @@ class RacingGame extends FlameGame
     if (isVertical) {
       playerCar.position.x += delta.x;
     } else {
+      // Invertir delta Y porque la cámara está rotada visualmente
       playerCar.position.y += delta.y;
     }
   }
@@ -462,7 +463,7 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
         // Renderizar normal (vertical)
         carSprite!.render(canvas, position: Vector2.zero(), size: size);
       } else {
-        // Renderizar rotado 90 grados para horizontal
+        // Renderizar rotado 90 grados (mirando a la derecha)
         canvas.save();
         canvas.translate(size.x / 2, size.y / 2);
         canvas.rotate(pi / 2);
@@ -527,6 +528,7 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
       if (isVertical) {
         position.x -= speed * dt;
       } else {
+        // Horizontal (mirando derecha): Izquierda es Arriba (Y-)
         position.y -= speed * dt;
       }
     }
@@ -534,6 +536,7 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
       if (isVertical) {
         position.x += speed * dt;
       } else {
+        // Horizontal (mirando derecha): Derecha es Abajo (Y+)
         position.y += speed * dt;
       }
     }
@@ -582,6 +585,7 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
         game.size.y - (size.y / 2) - 20,
       );
     } else {
+      // Horizontal: Carro a la izquierda, mirando a la derecha
       position = Vector2(150, config.sideWidth + config.roadWidth / 2);
     }
   }
@@ -784,17 +788,19 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
           }
         }
       } else {
-        // Desplazamiento horizontal (Hacia izquierda)
+        // Desplazamiento horizontal (Hacia izquierda, objetos vienen de derecha)
         double startX = rect.left - (scrollOffset % effectiveLength);
+
+        // Asegurar cobertura completa (dibujar un tile extra al principio si es necesario)
+        if (startX > rect.left) startX -= effectiveLength;
 
         for (double x = startX; x < rect.right; x += effectiveLength) {
           for (double y = rect.top; y < rect.bottom; y += scaledRoadWidth) {
             canvas.save();
             // Centro del tile en pantalla:
-            // X: x + mitad de longitud visual
-            // Y: y + mitad de ancho visual
             canvas.translate(x + scaledRoadLength / 2, y + scaledRoadWidth / 2);
-            canvas.rotate(-pi / 2);
+            // Rotar 90 grados para que apunte a la derecha
+            canvas.rotate(pi / 2);
             sprite.render(
               canvas,
               position: Vector2(-scaledRoadWidth / 2, -scaledRoadLength / 2),
@@ -849,11 +855,13 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
         // Desplazamiento horizontal (Hacia izquierda)
         double startX = rect.left - (scrollOffset % effectiveLength);
 
+        if (startX > rect.left) startX -= effectiveLength;
+
         for (double x = startX; x < rect.right; x += effectiveLength) {
           for (double y = rect.top; y < rect.bottom; y += scaledSideWidth) {
             canvas.save();
             canvas.translate(x + scaledSideLength / 2, y + scaledSideWidth / 2);
-            canvas.rotate(-pi / 2);
+            canvas.rotate(pi / 2);
             sprite.render(
               canvas,
               position: Vector2(-scaledSideWidth / 2, -scaledSideLength / 2),
@@ -950,11 +958,16 @@ class TrackBackground extends Component with HasGameReference<RacingGame> {
   ) {
     const dashWidth = 30.0;
     const gapWidth = 20.0;
+    const totalWidth = dashWidth + gapWidth;
 
-    double x = width - (scrollOffset % (dashWidth + gapWidth));
-    while (x > -dashWidth) {
-      canvas.drawLine(Offset(x, y), Offset(x - dashWidth, y), paint);
-      x -= dashWidth + gapWidth;
+    // Normal: scrollOffset aumenta -> líneas se mueven a la izquierda
+    double x = -(scrollOffset % totalWidth);
+
+    while (x < width) {
+      if (x + dashWidth > 0) {
+        canvas.drawLine(Offset(x, y), Offset(x + dashWidth, y), paint);
+      }
+      x += totalWidth;
     }
   }
 
@@ -1041,8 +1054,21 @@ class ObstacleComponent extends PositionComponent
     super.render(canvas);
 
     if (obstacleSprite != null) {
-      // Renderizar sprite
-      obstacleSprite!.render(canvas, position: Vector2.zero(), size: size);
+      if (isVertical) {
+        // Renderizar normal (vertical)
+        obstacleSprite!.render(canvas, position: Vector2.zero(), size: size);
+      } else {
+        // Renderizar rotado 90 grados para horizontal (mirando derecha)
+        canvas.save();
+        canvas.translate(size.x / 2, size.y / 2);
+        canvas.rotate(pi / 2);
+        obstacleSprite!.render(
+          canvas,
+          position: Vector2(-size.y / 2, -size.x / 2),
+          size: Vector2(size.y, size.x),
+        );
+        canvas.restore();
+      }
     } else {
       // Renderizar fallback (rectángulo rojo)
       final rect = Rect.fromLTWH(0, 0, size.x, size.y);
@@ -1060,14 +1086,54 @@ class ObstacleComponent extends PositionComponent
 
     // ⭐ DEBUG: Dibujar hitbox
     if (game.debugMode) {
-      final hitbox = getHitboxRectLocal();
-      canvas.drawRect(
-        hitbox,
-        Paint()
+      if (type == 'cone') {
+        // Dibujar hitbox compuesta del cono
+        final center = Offset(size.x / 2, size.y / 2);
+        Rect topRect;
+        Rect bottomRect;
+
+        if (isVertical) {
+          topRect = Rect.fromCenter(
+            center: center + Offset(0, -size.y * 0.25),
+            width: size.x * 0.3,
+            height: size.y * 0.5,
+          );
+          bottomRect = Rect.fromCenter(
+            center: center + Offset(0, size.y * 0.25),
+            width: size.x * 0.85,
+            height: size.y * 0.5,
+          );
+        } else {
+          // Horizontal
+          topRect = Rect.fromCenter(
+            center: center + Offset(size.x * 0.25, 0),
+            width: size.x * 0.5,
+            height: size.y * 0.3,
+          );
+          bottomRect = Rect.fromCenter(
+            center: center + Offset(-size.x * 0.25, 0),
+            width: size.x * 0.5,
+            height: size.y * 0.85, // Base más ancha
+          );
+        }
+
+        final debugPaint = Paint()
           ..color = Colors.blue.withOpacity(0.5)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
-      );
+          ..strokeWidth = 2;
+
+        canvas.drawRect(topRect, debugPaint);
+        canvas.drawRect(bottomRect, debugPaint);
+      } else {
+        final hitbox = getHitboxRectLocal();
+        canvas.drawRect(
+          hitbox,
+          Paint()
+            ..color = Colors.blue.withOpacity(0.5)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2,
+        );
+      }
     }
   }
 
@@ -1107,7 +1173,8 @@ class ObstacleComponent extends PositionComponent
     if (isVertical) {
       position = Vector2(randomPos, -size.y);
     } else {
-      position = Vector2(gameSize.x + size.x, randomPos);
+      // Horizontal: Spawn a la derecha (X positivo)
+      position = Vector2(game.size.x + size.x, randomPos);
     }
   }
 
@@ -1129,6 +1196,7 @@ class ObstacleComponent extends PositionComponent
         removeFromParent();
       }
     } else {
+      // Horizontal: Mover a la izquierda (X-)
       position.x -= gameSpeed * dt;
 
       if (!hasPassed && position.x < 200) {
@@ -1152,18 +1220,35 @@ class ObstacleComponent extends PositionComponent
 
     if (type == 'cone') {
       // ⭐ Hitbox triangular aproximada (2 rectángulos)
-      // 1. Parte superior (estrecha)
-      final topRect = Rect.fromCenter(
-        center: position.toOffset() + Offset(0, -size.y * 0.25),
-        width: size.x * 0.3,
-        height: size.y * 0.5,
-      );
-      // 2. Base (ancha)
-      final bottomRect = Rect.fromCenter(
-        center: position.toOffset() + Offset(0, size.y * 0.25),
-        width: size.x * 0.85,
-        height: size.y * 0.5,
-      );
+      Rect topRect;
+      Rect bottomRect;
+
+      if (isVertical) {
+        // Vertical: Punta arriba (Y-), Base abajo (Y+)
+        topRect = Rect.fromCenter(
+          center: position.toOffset() + Offset(0, -size.y * 0.25),
+          width: size.x * 0.3,
+          height: size.y * 0.5,
+        );
+        bottomRect = Rect.fromCenter(
+          center: position.toOffset() + Offset(0, size.y * 0.25),
+          width: size.x * 0.85,
+          height: size.y * 0.5,
+        );
+      } else {
+        // Horizontal: Punta derecha (X+), Base izquierda (X-)
+        // size.x es largo (horizontal), size.y es ancho (vertical)
+        topRect = Rect.fromCenter(
+          center: position.toOffset() + Offset(size.x * 0.25, 0),
+          width: size.x * 0.5,
+          height: size.y * 0.3,
+        );
+        bottomRect = Rect.fromCenter(
+          center: position.toOffset() + Offset(-size.x * 0.25, 0),
+          width: size.x * 0.5,
+          height: size.y * 0.85, // Ajustado para coincidir con la base visual
+        );
+      }
 
       if (playerRect.overlaps(topRect) || playerRect.overlaps(bottomRect)) {
         collides = true;
@@ -1235,7 +1320,8 @@ class CoinComponent extends PositionComponent
       if (isVertical) {
         candidatePos = Vector2(randomPos, -size.y - 220);
       } else {
-        candidatePos = Vector2(game.size.x + size.x + 220, randomPos);
+        // Horizontal: Spawn a la derecha
+        candidatePos = Vector2(game.size.x + 220, randomPos);
       }
 
       // Verificar distancia con obstáculos cercanos
@@ -1278,12 +1364,19 @@ class CoinComponent extends PositionComponent
   void render(Canvas canvas) {
     super.render(canvas);
     if (coinSprite != null) {
-      coinSprite!.render(
-        canvas,
-        position: Vector2.zero(),
-        size: size,
-        // anchor: Anchor.topLeft,
-      );
+      if (isVertical) {
+        coinSprite!.render(canvas, position: Vector2.zero(), size: size);
+      } else {
+        canvas.save();
+        canvas.translate(size.x / 2, size.y / 2);
+        canvas.rotate(pi / 2);
+        coinSprite!.render(
+          canvas,
+          position: Vector2(-size.y / 2, -size.x / 2),
+          size: Vector2(size.y, size.x),
+        );
+        canvas.restore();
+      }
     } else {
       final rect = Rect.fromLTWH(0, 0, size.x, size.y);
       canvas.drawOval(rect, fallbackPaint);
@@ -1335,6 +1428,7 @@ class CoinComponent extends PositionComponent
         return;
       }
     } else {
+      // Horizontal: Mover a la izquierda
       position.x -= gameSpeed * dt;
       if (position.x < -80) {
         removeFromParent();
@@ -1395,7 +1489,8 @@ class FuelComponent extends PositionComponent
     if (isVertical) {
       position = Vector2(randomPos, -size.y - 300); // Más separado
     } else {
-      position = Vector2(game.size.x + size.x + 300, randomPos);
+      // Horizontal: Spawn a la derecha
+      position = Vector2(game.size.x + 300, randomPos);
     }
 
     try {
@@ -1415,7 +1510,19 @@ class FuelComponent extends PositionComponent
   void render(Canvas canvas) {
     super.render(canvas);
     if (fuelSprite != null) {
-      fuelSprite!.render(canvas, position: Vector2.zero(), size: size);
+      if (isVertical) {
+        fuelSprite!.render(canvas, position: Vector2.zero(), size: size);
+      } else {
+        canvas.save();
+        canvas.translate(size.x / 2, size.y / 2);
+        canvas.rotate(pi / 2);
+        fuelSprite!.render(
+          canvas,
+          position: Vector2(-size.y / 2, -size.x / 2),
+          size: Vector2(size.y, size.x),
+        );
+        canvas.restore();
+      }
     } else {
       final rect = Rect.fromLTWH(0, 0, size.x, size.y);
       // Dibujar un bidón simple
@@ -1484,6 +1591,7 @@ class FuelComponent extends PositionComponent
         return;
       }
     } else {
+      // Horizontal: Mover a la izquierda (X-)
       position.x -= gameSpeed * dt;
       if (position.x < -80) {
         removeFromParent();
