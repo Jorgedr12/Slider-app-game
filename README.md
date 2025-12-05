@@ -1,102 +1,129 @@
-# slider_app
+# 🚗💨 CarRush2D — Arcade Racing Reimagined
 
-A Flutter application with Supabase integration for player score tracking.
+**CarRush2D** es un juego de carreras infinitas en 2D desarrollado en Flutter. Combina velocidad, cultura urbana, humor y personajes icónicos en una experiencia dinámica donde tu objetivo es simple: **seguir avanzando**.
+
+Explora escenarios únicos, esquiva obstáculos, mejora tus reflejos y domina cada vehículo. No hay meta. Solo el camino.
+
+---
+
+## 🗺️ Mundos Disponibles
+
+### 1. Mount Akina
+Carretera nocturna de montaña con curvas cerradas y ambientación inspirada en el drifting japonés.
+
+### 2. Slender Forest
+Bosque oscuro con visibilidad reducida y ambiente misterioso. Mayor dificultad.
+
+### 3. Ueno Park
+Parque urbano inspirado en Tokio, con faroles cálidos y flor de cerezo cayendo. Ideal para iniciar.
+
+---
+
+## 👥 Conductores y Vehículos
+
+Cada personaje posee estilo propio y un vehículo emblemático:
+
+| Conductor | Vehículo | Descripción |
+|-----------|----------|-------------|
+| **Takumi Fujiwara** | Toyota Trueno GT-Apex AE86 | Preciso y ligero. Inspirado en leyendas del downhill. |
+| **El Pirata de Culiacán** | Jeep Cherokee | Rudo, pesado y caótico. |
+| **El Vítor** | Microbús Ruta 12 | Mucha actitud, poca aerodinámica. |
+| **Hot Dogs Mano Puercas** | Carro de Dogos | Humor y velocidad combinados. |
+| **Miguel The Creator** | Tsuru 1992 | Fiable y resistente. Un clásico mexicano. |
+| **Cirett** | DeLorean DMC-12 | Retro-futurista. Único en su estilo. |
+
+---
+
+## 🎮 Mecánicas de Juego
+
+### Recursos del Vehículo
+- **⛽ Combustible**: se reduce con el tiempo.
+- **🛞 Integridad del vehículo**: disminuye al chocar.
+
+### Objetos en el Camino
+- Tanques de gasolina
+- Kits de reparación
+- Monedas para incrementar puntuación
+
+### Dificultad Progresiva
+La velocidad del juego aumenta mientras avanzas. No dejes de reaccionar.
+
+### Modos de Pantalla
+- **Vertical**: controles simples con una mano.
+- **Horizontal**: vista panorámica, mayor campo visual.
+
+---
+
+## 🧩 Arquitectura del Proyecto
+
+```
+lib/
+│ main.dart
+└─ services/
+      supabase_service.dart
+```
+
+### Supabase
+- Autenticación
+- Registro de puntuaciones
+- Métodos centralizados:
+  - `signIn()`
+  - `insertPlayer()`
+  - `updatePlayer()`
+  - `checkAndUpsertPlayer()`
+  - `retrievePoints()`
+
+### Persistencia Local
+- Personaje seleccionado
+- Último mapa
+- Ajustes de audio
+- Preferencias del jugador
+
+---
 
 ## 🔧 Configuración de Variables de Entorno
 
-Esta aplicación utiliza variables de entorno para gestionar configuraciones sensibles.
-
-### Configuración Inicial
-
-1. Copia el archivo de ejemplo `.env.example` a `.env`:
+1. **Crear el archivo `.env`**:
    ```bash
    cp .env.example .env
    ```
 
-2. Edita el archivo `.env` con tus credenciales reales:
+2. **Agregar tu configuración**:
    ```env
-   # Supabase Configuration
    SUPABASE_URL=https://tu-proyecto.supabase.co
-   SUPABASE_ANON_KEY=tu_anon_key_aqui
-   
-   # Authentication
-   AUTH_EMAIL=tu_email@example.com
-   AUTH_PASSWORD=tu_password_aqui
+   SUPABASE_ANON_KEY=tu_clave
+   AUTH_EMAIL=tucorreo@example.com
+   AUTH_PASSWORD=tu_password
    ```
 
-3. El archivo `.env` está en `.gitignore` y **NO debe** ser commiteado.
+⚠️ **Importante**: El archivo `.env` está en `.gitignore` y no debe subirse al repositorio.
 
-### Variables Disponibles
+---
 
-| Variable | Descripción |
-|----------|-------------|
-| `SUPABASE_URL` | URL de tu proyecto Supabase |
-| `SUPABASE_ANON_KEY` | Clave anónima pública de Supabase |
-| `AUTH_EMAIL` | Email para autenticación |
-| `AUTH_PASSWORD` | Contraseña para autenticación |
+## 🚀 Instalación
 
-## 🚀 Instalación y Ejecución
-
-1. Instala las dependencias:
-   ```bash
-   flutter pub get
-   ```
-
-2. Configura tu archivo `.env` (ver arriba)
-
-3. Ejecuta la aplicación:
-   ```bash
-   flutter run
-   ```
-
-## 🏗️ Arquitectura
-
-El proyecto sigue una arquitectura de servicios:
-
-```
-lib/
-├── main.dart                    # Punto de entrada, carga .env
-└── services/
-    └── supabase_service.dart   # Lógica de Supabase centralizada
+```bash
+flutter pub get
+flutter run
 ```
 
-### SupabaseService
+---
 
-Todas las operaciones de Supabase están encapsuladas en `SupabaseService`:
+## 📦 Dependencias Principales
 
-- `signIn()` - Autenticación
-- `insertPlayer()` - Insertar jugador
-- `updatePlayer()` - Actualizar puntos
-- `checkAndUpsertPlayer()` - Upsert inteligente
-- `retrievePoints()` - Obtener puntos
+- `supabase_flutter`
+- `flutter_dotenv`
+- Librerías estándar de Flutter para animaciones, UI y lógica del juego.
 
-## 🔒 Seguridad
+---
 
-- **Nunca** compartas tu archivo `.env`
-- El archivo `.env` está en `.gitignore`
-- Usa `.env.example` como plantilla
+## 🏁 Créditos
 
-## 📦 Dependencias
+Proyecto desarrollado por:
+- **DUARTE RUIZ JORGE LUIS**
+- **ESTRADA NERI DANIEL IVAN**
+- **MARTÍNEZ HARO KEVIN XANDÉ**
 
-- `supabase_flutter: ^2.10.3` - Cliente de Supabase
-- `flutter_dotenv: ^5.1.0` - Gestión de variables de entorno
+---
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-    
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-
-## 🪪 Créditos
-
-- [Flutter](https://flutter.dev) - Framework para construir aplicaciones nativas
-- [Supabase](https://supabase.io) - Backend como servicio
-- [flutter_dotenv](https://pub.dev/packages/flutter_dotenv) - Gestión de variables de entorno
-- [freepngimg](https://freepngimg.com/png/148675-car-top-vector-view-free-hd-image) - Iconos de autos utilizados en la aplicación
+🎮 **¡Disfruta la carrera!** 🏁
