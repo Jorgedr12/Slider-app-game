@@ -222,7 +222,8 @@ class _CreditsScreenState extends State<CreditsScreen> {
         ),
         child: Text(
           'Images generated with Gemini\n'
-          'Music obtained from: sepa la verga',
+          'Music obtained from: Suno.com and YouTube, free of copyright claims\n'
+          'Sound effects obtained from: pixabay.com',
           style: TextStyle(
             fontFamily: 'PressStart',
             fontSize: 9,
