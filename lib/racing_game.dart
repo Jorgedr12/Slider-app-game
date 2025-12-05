@@ -1352,7 +1352,7 @@ class CoinComponent extends PositionComponent
       coinSprite = null;
     }
 
-    final coinSize = game.sizeConfig.getObstacleSize(40, 40);
+    final coinSize = game.sizeConfig.getObstacleSize(70, 70);
     size = Vector2(coinSize.x, coinSize.y);
     anchor = Anchor.center;
     // La posición ya se estableció arriba
@@ -1456,7 +1456,7 @@ class CoinComponent extends PositionComponent
 
   void updateOrientation(bool vertical) {
     isVertical = vertical;
-    final coinSize = game.sizeConfig.getObstacleSize(40, 40);
+    final coinSize = game.sizeConfig.getObstacleSize(70, 70);
     size = Vector2(coinSize.x, coinSize.y);
   }
 }
@@ -1501,7 +1501,7 @@ class FuelComponent extends PositionComponent
       fuelSprite = null;
     }
 
-    final itemSize = game.sizeConfig.getObstacleSize(40, 40);
+    final itemSize = game.sizeConfig.getObstacleSize(100, 100);
     size = Vector2(itemSize.x, itemSize.y);
     anchor = Anchor.center;
   }
@@ -1617,7 +1617,7 @@ class FuelComponent extends PositionComponent
 
   void updateOrientation(bool vertical) {
     isVertical = vertical;
-    final itemSize = game.sizeConfig.getObstacleSize(40, 40);
+    final itemSize = game.sizeConfig.getObstacleSize(100, 100);
     size = Vector2(itemSize.x, itemSize.y);
   }
 }
