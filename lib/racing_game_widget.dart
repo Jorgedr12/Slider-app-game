@@ -6,6 +6,9 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:slider_app/pause_menu.dart';
 import 'package:slider_app/racing_game.dart';
 import 'services/audio_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'racing_game.dart';
 // import 'pause_menu_advanced.dart';
 
@@ -38,9 +41,15 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   bool _isVertical = true;
   late final AnimationController _hudTicker;
 
+  // Variables para el formulario de Game Over
+  final TextEditingController _nameController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool _scoreSaved = false;
+
   @override
   void initState() {
     super.initState();
+    _loadLastPlayerName();
     _isVertical = widget.startVertical;
     _gameAudioPlayer = AudioPlayer();
     // Refrescar el HUD periódicamente para reflejar cambios del juego
@@ -76,6 +85,16 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     debugPrint('═══════════════════════════════════════');
 
     _playGameMusic();
+  }
+
+  Future<void> _loadLastPlayerName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastPlayerName = prefs.getString('last_player_name') ?? '';
+    if (mounted) {
+      setState(() {
+        _nameController.text = lastPlayerName;
+      });
+    }
   }
 
   Future<void> _playGameMusic() async {
@@ -142,8 +161,72 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   void _showGameOver() {
     setState(() {
       _isGameOver = true;
+      _scoreSaved = false;
       _gameAudioPlayer.stop();
     });
+  }
+
+  Future<void> _submitScore(String name) async {
+    try {
+      // Guardar en SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_player_name', name);
+
+      // Preparar cliente Supabase
+      SupabaseClient client = Supabase.instance.client;
+      bool isTempClient = false;
+
+      final token = dotenv.env['TOKEN'];
+      final url = dotenv.env['SUPABASE_URL'];
+
+      if (token != null && url != null) {
+        // Crear cliente temporal con el token explícito (Service Role Key)
+        // Al pasar el token como supabaseKey, se usa para apikey y Authorization
+        client = SupabaseClient(url, token);
+        isTempClient = true;
+      }
+
+      try {
+        // Guardar en Supabase
+        await client.from('players').insert({
+          'name': name,
+          'distance': _game.distance.toInt(),
+          'max_speed': _game.maxSpeed.toInt(),
+        });
+      } finally {
+        if (isTempClient) {
+          await client.dispose();
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _scoreSaved = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Score saved successfully!',
+              style: TextStyle(fontFamily: 'PressStart', fontSize: 10),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error saving score: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error: $e',
+              style: const TextStyle(fontFamily: 'PressStart', fontSize: 10),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -504,10 +587,11 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                         ],
                       ),
                       const SizedBox(width: 50),
-                      // Derecha: Botones
+                      // Derecha: Botones y Formulario
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          _buildScoreForm(),
                           _buildGameOverButton(
                             text: 'REINTENTAR',
                             icon: Icons.restart_alt,
@@ -568,7 +652,10 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                         '${_game.maxSpeed.toStringAsFixed(0)} km/h',
                       ),
 
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 30),
+
+                      // Formulario de guardado
+                      _buildScoreForm(),
 
                       // Botones
                       Wrap(
@@ -595,6 +682,91 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildScoreForm() {
+    if (_scoreSaved) {
+      return Column(
+        children: [
+          const Text(
+            '¡PUNTAJE GUARDADO!',
+            style: TextStyle(
+              fontFamily: 'PressStart',
+              fontSize: 14,
+              color: Colors.greenAccent,
+            ),
+          ),
+          const SizedBox(height: 30),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        const Text(
+          'INGRESA TU NOMBRE',
+          style: TextStyle(
+            fontFamily: 'PressStart',
+            fontSize: 12,
+            color: Colors.cyanAccent,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Form(
+          key: _formKey,
+          child: Container(
+            width: 250,
+            child: TextFormField(
+              controller: _nameController,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontFamily: 'PressStart',
+                fontSize: 14,
+              ),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Colors.cyan),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: Colors.cyan),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                    color: Colors.cyanAccent,
+                    width: 2,
+                  ),
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) return 'Requerido';
+                if (value.length < 3) return 'Min 3 letras';
+                if (!RegExp(r'^[a-zA-Z0-9 ]+$').hasMatch(value))
+                  return 'Solo letras/nums';
+                return null;
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 15),
+        _buildGameOverButton(
+          text: 'GUARDAR',
+          icon: Icons.save,
+          color: Colors.orange,
+          onTap: () {
+            if (_formKey.currentState!.validate()) {
+              _submitScore(_nameController.text.trim());
+            }
+          },
+        ),
+        const SizedBox(height: 30),
+      ],
     );
   }
 
