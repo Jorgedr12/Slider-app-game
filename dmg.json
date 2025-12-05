@@ -1,0 +1,19 @@
+{
+  "title": "Slider App Game",
+  "icon-size": 120,
+  "background-color": "#FFFFFF",
+  "contents": [
+    {
+      "x": 130,
+      "y": 170,
+      "type": "file",
+      "path": "build/macos/Build/Products/Release/slider_app_game.app"
+    },
+    {
+      "x": 400,
+      "y": 170,
+      "type": "link",
+      "path": "/Applications"
+    }
+  ]
+}
