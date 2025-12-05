@@ -230,12 +230,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     super.dispose();
   }
 
-  bool get _shouldShowOrientationButton {
-    if (kIsWeb) return true;
-    return defaultTargetPlatform != TargetPlatform.android &&
-        defaultTargetPlatform != TargetPlatform.iOS;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -245,8 +239,8 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
           children: [
             GameWidget(game: _game),
             if (!_isPaused && !_isGameOver) _buildGameHUD(),
-            if (!_isPaused && !_isGameOver && _shouldShowOrientationButton)
-              _buildOrientationButton(),
+            // ⭐ CAMBIO: Ahora siempre muestra el botón (quitamos la condición)
+            if (!_isPaused && !_isGameOver) _buildOrientationButton(),
             if (_isPaused && !_isGameOver)
               PauseMenu(
                 onResume: _resumeGame,
