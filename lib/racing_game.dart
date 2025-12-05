@@ -78,12 +78,11 @@ class RacingGame extends FlameGame
         'obstacles/cone.png',
         'obstacles/llantas.png',
         'obstacles/valla.png',
-        // 'obstacles/coin.png', // No existen aún
-        // 'obstacles/fuel.png', // No existen aún
+        'obstacles/coin.png',
+        'obstacles/fuel.png',
       ]);
-      debugPrint('✅ Assets precargados correctamente');
     } catch (e) {
-      debugPrint('⚠️ Error precargando assets: $e');
+      // Ignorar errores de carga silenciosamente o loguear solo si es crítico
     }
 
     // ⭐ NUEVO: Inicializar configuración de tamaños
@@ -91,19 +90,6 @@ class RacingGame extends FlameGame
       screenSize: Size(size.x, size.y),
       isVertical: isVertical,
     );
-
-    debugPrint('═══════════════════════════════════');
-    debugPrint('📐 CONFIGURACIÓN DE TAMAÑOS:');
-    debugPrint('   Pantalla: ${size.x.toInt()}x${size.y.toInt()}');
-    debugPrint('   Orientación: ${isVertical ? "Vertical" : "Horizontal"}');
-    debugPrint('   Carriles: ${sizeConfig.numberOfLanes}');
-    debugPrint('   Ancho carril: ${sizeConfig.laneWidth.toInt()}px');
-    debugPrint(
-      '   Tamaño carro: ${sizeConfig.carWidth.toInt()}x${sizeConfig.carHeight.toInt()}',
-    );
-    debugPrint('   Ancho carretera: ${sizeConfig.roadWidth.toInt()}px');
-    debugPrint('   Ancho lados: ${sizeConfig.sideWidth.toInt()}px');
-    debugPrint('═══════════════════════════════════');
 
     camera.viewfinder.anchor = Anchor.topLeft;
 
@@ -323,11 +309,6 @@ class RacingGame extends FlameGame
       isVertical: isVertical,
     );
 
-    debugPrint(
-      '🔄 Orientación cambiada a: ${isVertical ? "Vertical" : "Horizontal"}',
-    );
-    debugPrint('   Nuevos carriles: ${sizeConfig.numberOfLanes}');
-
     trackBackground.updateOrientation(isVertical);
     playerCar.updateOrientation(isVertical);
 
@@ -433,7 +414,6 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
 
     try {
       carSprite = await Sprite.load(carSpritePath);
-      debugPrint('✅ Sprite del carro cargado: $carSpritePath');
     } catch (e) {
       debugPrint('❌ Error cargando sprite del carro: $e');
       debugPrint('🎨 Usando color fallback: NARANJA');
@@ -450,8 +430,6 @@ class PlayerCar extends PositionComponent with HasGameReference<RacingGame> {
     anchor = Anchor.center;
 
     _updatePosition();
-
-    debugPrint('🚗 Carro creado - Tamaño: ${size.x.toInt()}x${size.y.toInt()}');
   }
 
   @override
@@ -1030,7 +1008,6 @@ class ObstacleComponent extends PositionComponent
 
     try {
       obstacleSprite = await Sprite.load(data.path);
-      debugPrint('✅ Sprite obstáculo cargado: ${data.path}');
     } catch (e) {
       debugPrint('❌ Error cargando sprite de obstáculo ($type): $e');
       debugPrint('🎨 Usando color fallback: ROJO');
