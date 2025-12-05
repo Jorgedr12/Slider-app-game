@@ -33,7 +33,7 @@ class RacingGameWidget extends StatefulWidget {
 }
 
 class _RacingGameWidgetState extends State<RacingGameWidget>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late RacingGame _game;
   late AudioPlayer _gameAudioPlayer;
   bool _isPaused = false;
@@ -49,6 +49,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadLastPlayerName();
     _isVertical = widget.startVertical;
     _gameAudioPlayer = AudioPlayer();
@@ -230,7 +231,26 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      // Pausar música y juego al salir de la app
+      _gameAudioPlayer.pause();
+      _game.pauseEngine();
+
+      // Mostrar menú de pausa si no estaba ya pausado o en game over
+      if (!_isPaused && !_isGameOver) {
+        setState(() {
+          _isPaused = true;
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     AudioManager.instance.clearCurrentPlayer(_gameAudioPlayer);
     _hudTicker.dispose();
     _gameAudioPlayer.dispose();
