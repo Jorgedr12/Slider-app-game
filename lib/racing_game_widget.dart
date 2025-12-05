@@ -9,8 +9,6 @@ import 'services/audio_manager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-// import 'racing_game.dart';
-// import 'pause_menu_advanced.dart';
 
 /// Widget principal que contiene el juego de carreras
 /// Maneja el estado de pausa, orientación, audio y overlays
@@ -53,7 +51,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     _loadLastPlayerName();
     _isVertical = widget.startVertical;
     _gameAudioPlayer = AudioPlayer();
-    // Refrescar el HUD periódicamente para reflejar cambios del juego
+
     _hudTicker =
         AnimationController(vsync: this, duration: const Duration(seconds: 1))
           ..addListener(() {
@@ -63,28 +61,15 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
           })
           ..repeat(period: const Duration(milliseconds: 100));
 
-    // Inicializar el juego con los datos recibidos
     _game = RacingGame(
       isVertical: _isVertical,
-      selectedCarSprite: widget.selectedCarSprite, // ⭐ Sprite del carro
-      selectedTrack: widget.trackFolder, // ⭐ Carpeta del escenario
+      selectedCarSprite: widget.selectedCarSprite,
+      selectedTrack: widget.trackFolder,
     );
 
-    // Configurar callbacks
     _game.onPauseRequest = _togglePause;
     _game.onGameOver = _showGameOver;
-    _game.currentTrackName = widget.trackName; // ⭐ Nombre para mostrar
-
-    debugPrint('═══════════════════════════════════════');
-    debugPrint('🎮 VALORES RECIBIDOS EN EL JUEGO:');
-    debugPrint('   Sprite del carro: ${widget.selectedCarSprite}');
-    debugPrint('   Carpeta de pista: ${widget.trackFolder}');
-    debugPrint('   Nombre de pista: ${widget.trackName}');
-    debugPrint(
-      '   Orientación: ${widget.startVertical ? "Vertical" : "Horizontal"}',
-    );
-    debugPrint('═══════════════════════════════════════');
-
+    _game.currentTrackName = widget.trackName;
     _playGameMusic();
   }
 
@@ -101,13 +86,10 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   Future<void> _playGameMusic() async {
     try {
       await _gameAudioPlayer.setReleaseMode(ReleaseMode.loop);
-
       AudioManager.instance.setBytesPlayer(_gameAudioPlayer);
-
       await _gameAudioPlayer.setVolume(
         AudioManager.instance.effectiveMusicVolume,
       );
-
       await _gameAudioPlayer.play(AssetSource('music/race_theme_v1.m4a'));
     } catch (e) {
       debugPrint('Error al reproducir música del juego: $e');
@@ -169,11 +151,9 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
 
   Future<void> _submitScore(String name) async {
     try {
-      // Guardar en SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('last_player_name', name);
 
-      // Preparar cliente Supabase
       SupabaseClient client = Supabase.instance.client;
       bool isTempClient = false;
 
@@ -181,14 +161,11 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
       final url = dotenv.env['SUPABASE_URL'];
 
       if (token != null && url != null) {
-        // Crear cliente temporal con el token explícito (Service Role Key)
-        // Al pasar el token como supabaseKey, se usa para apikey y Authorization
         client = SupabaseClient(url, token);
         isTempClient = true;
       }
 
       try {
-        // Guardar en Supabase
         await client.from('players').insert({
           'name': name,
           'distance': _game.distance.toInt(),
@@ -233,14 +210,9 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Solo pausar si la app se va al background (paused).
-    // Ignoramos 'inactive' porque puede dispararse al rotar la pantalla.
     if (state == AppLifecycleState.paused) {
-      // Pausar música y juego al salir de la app
       _gameAudioPlayer.pause();
       _game.pauseEngine();
-
-      // Mostrar menú de pausa si no estaba ya pausado o en game over
       if (!_isPaused && !_isGameOver) {
         setState(() {
           _isPaused = true;
@@ -271,25 +243,16 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
         autofocus: true,
         child: Stack(
           children: [
-            // El juego de Flame
             GameWidget(game: _game),
-
-            // HUD del juego (siempre visible cuando no está pausado)
             if (!_isPaused && !_isGameOver) _buildGameHUD(),
-
-            // Botón de cambiar orientación
             if (!_isPaused && !_isGameOver && _shouldShowOrientationButton)
               _buildOrientationButton(),
-
-            // Menú de pausa
             if (_isPaused && !_isGameOver)
               PauseMenu(
                 onResume: _resumeGame,
                 onRestart: _restartGame,
                 onExit: _exitToMenu,
               ),
-
-            // Pantalla de Game Over
             if (_isGameOver) _buildGameOverScreen(),
           ],
         ),
@@ -297,7 +260,230 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     );
   }
 
+  // ⭐ HUD ADAPTATIVO - Detecta orientación del dispositivo
   Widget _buildGameHUD() {
+    final orientation = MediaQuery.of(context).orientation;
+    final isDeviceLandscape = orientation == Orientation.landscape;
+
+    // En landscape móvil, usar layout compacto
+    if (isDeviceLandscape && !kIsWeb) {
+      return _buildLandscapeHUD();
+    }
+
+    // En portrait o desktop, usar layout original
+    return _buildPortraitHUD();
+  }
+
+  // ⭐ NUEVO: HUD para Landscape (móvil)
+  Widget _buildLandscapeHUD() {
+    return Positioned(
+      top: 10,
+      left: 10,
+      right: 10,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Panel izquierdo compacto
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.7),
+              border: Border.all(color: Colors.cyan.withOpacity(0.6), width: 2),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(color: Colors.cyan.withOpacity(0.3), blurRadius: 8),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Vidas + Distancia (misma línea)
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.favorite,
+                      color: Colors.redAccent,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_game.lives}/${_game.maxLives}',
+                      style: const TextStyle(
+                        fontFamily: 'PressStart',
+                        fontSize: 10,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.straighten, color: Colors.white, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_game.distance.toStringAsFixed(0)}m',
+                      style: const TextStyle(
+                        fontFamily: 'PressStart',
+                        fontSize: 10,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // Velocidad
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.speed,
+                      color: Colors.orangeAccent,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_game.currentSpeed.toStringAsFixed(0)} km/h',
+                      style: const TextStyle(
+                        fontFamily: 'PressStart',
+                        fontSize: 10,
+                        color: Colors.orangeAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Panel derecho compacto (Gasolina + Monedas)
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  border: Border.all(
+                    color: _game.fuel > 20
+                        ? Colors.green.withOpacity(0.6)
+                        : Colors.red.withOpacity(0.8),
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_game.fuel > 20 ? Colors.green : Colors.red)
+                          .withOpacity(0.3),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Monedas
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.monetization_on,
+                          color: Colors.amber,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_game.coinsCollected}',
+                          style: const TextStyle(
+                            fontFamily: 'PressStart',
+                            fontSize: 12,
+                            color: Colors.amber,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Gasolina
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.local_gas_station,
+                          color: _game.fuel > 20 ? Colors.green : Colors.red,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_game.fuel.toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            fontFamily: 'PressStart',
+                            fontSize: 12,
+                            color: _game.fuel > 20 ? Colors.green : Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Barra de gasolina compacta
+                    Container(
+                      width: 80,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: (_game.fuel / 100).clamp(0.0, 1.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: _game.fuel > 20
+                                  ? [Colors.green, Colors.lightGreen]
+                                  : [Colors.red, Colors.orange],
+                            ),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Botón de pausa más pequeño
+              GestureDetector(
+                onTap: _togglePause,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    border: Border.all(color: Colors.orangeAccent, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orangeAccent.withOpacity(0.5),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.pause,
+                    color: Colors.orangeAccent,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // HUD original para Portrait y Desktop
+  Widget _buildPortraitHUD() {
     return Positioned(
       top: 20,
       left: 20,
@@ -320,7 +506,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Vidas
                 Row(
                   children: [
                     const Icon(
@@ -340,7 +525,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                   ],
                 ),
                 const SizedBox(height: 5),
-                // Distancia
                 Row(
                   children: [
                     const Icon(Icons.straighten, color: Colors.white, size: 18),
@@ -356,7 +540,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                   ],
                 ),
                 const SizedBox(height: 5),
-                // Velocidad
                 Row(
                   children: [
                     const Icon(
@@ -408,7 +591,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                 ),
                 child: Column(
                   children: [
-                    // Monedas
                     Row(
                       children: [
                         const Icon(
@@ -449,7 +631,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                       ],
                     ),
                     const SizedBox(height: 5),
-                    // Barra de gasolina
                     Container(
                       width: 120,
                       height: 8,
@@ -506,14 +687,18 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     );
   }
 
+  // ⭐ Botón de orientación adaptado a la posición según layout
   Widget _buildOrientationButton() {
+    final orientation = MediaQuery.of(context).orientation;
+    final isDeviceLandscape = orientation == Orientation.landscape;
+
     return Positioned(
-      bottom: 30,
-      left: 20,
+      bottom: isDeviceLandscape ? 10 : 30,
+      left: isDeviceLandscape ? 10 : 20,
       child: GestureDetector(
         onTap: _toggleOrientation,
         child: Container(
-          padding: const EdgeInsets.all(15),
+          padding: EdgeInsets.all(isDeviceLandscape ? 10 : 15),
           decoration: BoxDecoration(
             color: Colors.black.withOpacity(0.7),
             border: Border.all(color: Colors.blue[300]!, width: 3),
@@ -529,7 +714,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
           child: Icon(
             _isVertical ? Icons.swap_horiz : Icons.swap_vert,
             color: Colors.blue[300],
-            size: 35,
+            size: isDeviceLandscape ? 24 : 35,
           ),
         ),
       ),
@@ -548,7 +733,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
         child: SingleChildScrollView(
           child: Container(
             padding: const EdgeInsets.all(40),
-            margin: const EdgeInsets.all(20), // Margen para móviles
+            margin: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: const Color(0xFF0a0a0a),
               border: Border.all(color: Colors.red, width: 4),
@@ -567,7 +752,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Izquierda: Título y Stats
                       Flexible(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -601,7 +785,10 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                               '${_game.obstaclesAvoided}',
                             ),
                             const SizedBox(height: 5),
-                            _buildFinalStat('MONEDAS', '${_game.coinsCollected}'),
+                            _buildFinalStat(
+                              'MONEDAS',
+                              '${_game.coinsCollected}',
+                            ),
                             const SizedBox(height: 5),
                             _buildFinalStat(
                               'VEL. MÁXIMA',
@@ -611,7 +798,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                         ),
                       ),
                       const SizedBox(width: 30),
-                      // Derecha: Botones y Formulario
                       Flexible(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -650,7 +836,6 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                 : Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Título Game Over
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
@@ -669,10 +854,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 30),
-
-                      // Estadísticas finales
                       _buildFinalStat(
                         'DISTANCIA',
                         '${_game.distance.toStringAsFixed(0)} m',
@@ -689,13 +871,8 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                         'VEL. MÁXIMA',
                         '${_game.maxSpeed.toStringAsFixed(0)} km/h',
                       ),
-
                       const SizedBox(height: 30),
-
-                      // Formulario de guardado
                       _buildScoreForm(),
-
-                      // Botones
                       Wrap(
                         alignment: WrapAlignment.center,
                         spacing: 20,
@@ -753,7 +930,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
         const SizedBox(height: 10),
         Form(
           key: _formKey,
-          child: Container(
+          child: SizedBox(
             width: 250,
             child: TextFormField(
               controller: _nameController,
@@ -785,8 +962,9 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Requerido';
                 if (value.length < 3) return 'Min 3 letras';
-                if (!RegExp(r'^[a-zA-Z0-9 ]+$').hasMatch(value))
+                if (!RegExp(r'^[a-zA-Z0-9 ]+$').hasMatch(value)) {
                   return 'Solo letras/nums';
+                }
                 return null;
               },
             ),
@@ -844,7 +1022,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: width, // Ancho configurable
+        width: width,
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
         decoration: BoxDecoration(
           color: color.withOpacity(0.2),
@@ -853,7 +1031,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
           boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 10)],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center, // Centrar contenido
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 24),
             const SizedBox(width: 10),
