@@ -9,13 +9,13 @@ Explora escenarios únicos, esquiva obstáculos, mejora tus reflejos y domina ca
 ## 🗺️ Mundos Disponibles
 
 ### 1. Mount Akina
-Carretera nocturna de montaña con curvas cerradas y ambientación inspirada en el drifting japonés.
+Carretera montañosa rodeada de **puras rocas**, terreno árido y un camino retador que exige precisión en cada giro.
 
 ### 2. Slender Forest
-Bosque oscuro con visibilidad reducida y ambiente misterioso. Mayor dificultad.
+Bosque verde y luminoso durante el día, con caminos naturales y vegetación ligera. Un escenario más relajado, pero con suficiente actividad para mantener la atención del jugador.
 
 ### 3. Ueno Park
-Parque urbano inspirado en Tokio, con faroles cálidos y flor de cerezo cayendo. Ideal para iniciar.
+Parque lleno de **cerezos cubiertos de nieve**, caminos fríos y un ambiente invernal combinado con pétalos rosados cayendo. Un escenario visualmente único.
 
 ---
 
@@ -42,7 +42,6 @@ Cada personaje posee estilo propio y un vehículo emblemático:
 
 ### Objetos en el Camino
 - Tanques de gasolina
-- Kits de reparación
 - Monedas para incrementar puntuación
 
 ### Dificultad Progresiva
@@ -66,12 +65,6 @@ lib/
 ### Supabase
 - Autenticación
 - Registro de puntuaciones
-- Métodos centralizados:
-  - `signIn()`
-  - `insertPlayer()`
-  - `updatePlayer()`
-  - `checkAndUpsertPlayer()`
-  - `retrievePoints()`
 
 ### Persistencia Local
 - Personaje seleccionado
