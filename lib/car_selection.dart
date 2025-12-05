@@ -56,7 +56,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
   int _currentCarIndex = 0;
   List<String> _ownedCharacters = [];
   bool _isLoading = true;
-  AudioPlayer? _currentSfxPlayer;
+  final AudioPlayer _sfxPlayer = AudioPlayer();
 
   final List<CarData> _cars = [
     CarData(
@@ -123,7 +123,7 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
 
   @override
   void dispose() {
-    _currentSfxPlayer?.dispose();
+    _sfxPlayer.dispose();
     super.dispose();
   }
 
@@ -142,21 +142,13 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
   }
 
   Future<void> _playCurrentSfx() async {
-    if (_currentSfxPlayer != null) {
-      try {
-        await _currentSfxPlayer!.stop();
-        await _currentSfxPlayer!.dispose();
-      } catch (_) {}
-      _currentSfxPlayer = null;
+    try {
+      await _sfxPlayer.stop();
+      await _sfxPlayer.setVolume(AudioManager.instance.effectiveSfxVolume);
+      await _sfxPlayer.play(AssetSource(_cars[_currentCarIndex].sfxPath));
+    } catch (e) {
+      debugPrint('Error playing SFX: $e');
     }
-    final player = AudioPlayer();
-    await player.setVolume(AudioManager.instance.effectiveSfxVolume);
-    await player.play(AssetSource(_cars[_currentCarIndex].sfxPath));
-    player.onPlayerComplete.listen((_) {
-      player.dispose();
-      if (_currentSfxPlayer == player) _currentSfxPlayer = null;
-    });
-    _currentSfxPlayer = player;
   }
 
   void _previousCar() {
