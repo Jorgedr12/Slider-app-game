@@ -160,8 +160,8 @@ class RacingGame extends FlameGame
           _spawnCoin();
         }
 
-        // Gasolina cada 10 obstáculos
-        if (_obstacleSpawnCount % 10 == 0) {
+        // Gasolina cada 14 obstáculos
+        if (_obstacleSpawnCount % 14 == 0) {
           _spawnFuel();
         }
       }
@@ -308,6 +308,11 @@ class RacingGame extends FlameGame
       screenSize: Size(size.x, size.y),
       isVertical: isVertical,
     );
+
+    debugPrint(
+      '🔄 Orientación cambiada a: ${isVertical ? "Vertical" : "Horizontal"}',
+    );
+    debugPrint('   Nuevos carriles: ${sizeConfig.numberOfLanes}');
 
     trackBackground.updateOrientation(isVertical);
     playerCar.updateOrientation(isVertical);
