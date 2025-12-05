@@ -772,49 +772,56 @@ class _CarSelectionScreenState extends State<CarSelectionScreen> {
   Widget _buildPortraitLayout(CarData currentCar, bool isUnlocked) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back, color: Colors.white, size: 32),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          decoration: BoxDecoration(
-            color: Colors.red[700],
-            border: Border(
-              top: BorderSide(color: Colors.white, width: 3),
-              bottom: BorderSide(color: Colors.white, width: 3),
-            ),
-          ),
-          child: Text(
-            'SELECT A MODEL',
-            style: TextStyle(
-              fontFamily: 'PressStart',
-              fontSize: 28,
-              color: Colors.white,
-              letterSpacing: 3,
-              shadows: [
-                Shadow(
-                  offset: Offset(3, 3),
-                  color: Colors.black,
-                  blurRadius: 5,
+        Stack(
+          children: [
+            // Recuadro rojo (header)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              decoration: BoxDecoration(
+                color: Colors.red[700],
+                border: Border(
+                  top: BorderSide(color: Colors.white, width: 3),
+                  bottom: BorderSide(color: Colors.white, width: 3),
                 ),
-              ],
+              ),
+              child: Center(
+                child: Text(
+                  'SELECT A MODEL',
+                  style: TextStyle(
+                    fontFamily: 'PressStart',
+                    fontSize: 28,
+                    color: Colors.white,
+                    letterSpacing: 3,
+                    shadows: [
+                      Shadow(
+                        offset: Offset(3, 3),
+                        color: Colors.black,
+                        blurRadius: 5,
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
+
+            // Flecha superpuesta encima del recuadro rojo
+            Positioned(
+              left: 10,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back, color: Colors.white, size: 32),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 30),
+
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(15),
