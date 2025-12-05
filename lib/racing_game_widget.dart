@@ -33,7 +33,7 @@ class RacingGameWidget extends StatefulWidget {
 }
 
 class _RacingGameWidgetState extends State<RacingGameWidget>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late RacingGame _game;
   late AudioPlayer _gameAudioPlayer;
   bool _isPaused = false;
@@ -49,6 +49,7 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadLastPlayerName();
     _isVertical = widget.startVertical;
     _gameAudioPlayer = AudioPlayer();
@@ -230,7 +231,27 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Solo pausar si la app se va al background (paused).
+    // Ignoramos 'inactive' porque puede dispararse al rotar la pantalla.
+    if (state == AppLifecycleState.paused) {
+      // Pausar música y juego al salir de la app
+      _gameAudioPlayer.pause();
+      _game.pauseEngine();
+
+      // Mostrar menú de pausa si no estaba ya pausado o en game over
+      if (!_isPaused && !_isGameOver) {
+        setState(() {
+          _isPaused = true;
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     AudioManager.instance.clearCurrentPlayer(_gameAudioPlayer);
     _hudTicker.dispose();
     _gameAudioPlayer.dispose();
@@ -544,68 +565,85 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
                 ? Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // Izquierda: Título y Stats
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              'GAME OVER',
-                              style: TextStyle(
-                                fontFamily: 'PixelifySans',
-                                fontSize: 50,
-                                color: Colors.red,
-                                letterSpacing: 4,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.red.withOpacity(0.8),
-                                    blurRadius: 20,
-                                  ),
-                                ],
+                      Flexible(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'GAME OVER',
+                                style: TextStyle(
+                                  fontFamily: 'PixelifySans',
+                                  fontSize: 40,
+                                  color: Colors.red,
+                                  letterSpacing: 4,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.red.withOpacity(0.8),
+                                      blurRadius: 20,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          _buildFinalStat(
-                            'DISTANCIA',
-                            '${_game.distance.toStringAsFixed(0)} m',
-                          ),
-                          const SizedBox(height: 10),
-                          _buildFinalStat(
-                            'OBSTÁCULOS',
-                            '${_game.obstaclesAvoided}',
-                          ),
-                          const SizedBox(height: 10),
-                          _buildFinalStat('MONEDAS', '${_game.coinsCollected}'),
-                          const SizedBox(height: 10),
-                          _buildFinalStat(
-                            'VEL. MÁXIMA',
-                            '${_game.maxSpeed.toStringAsFixed(0)} km/h',
-                          ),
-                        ],
+                            const SizedBox(height: 10),
+                            _buildFinalStat(
+                              'DISTANCIA',
+                              '${_game.distance.toStringAsFixed(0)} m',
+                            ),
+                            const SizedBox(height: 5),
+                            _buildFinalStat(
+                              'OBSTÁCULOS',
+                              '${_game.obstaclesAvoided}',
+                            ),
+                            const SizedBox(height: 5),
+                            _buildFinalStat('MONEDAS', '${_game.coinsCollected}'),
+                            const SizedBox(height: 5),
+                            _buildFinalStat(
+                              'VEL. MÁXIMA',
+                              '${_game.maxSpeed.toStringAsFixed(0)} km/h',
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 50),
+                      const SizedBox(width: 30),
                       // Derecha: Botones y Formulario
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildScoreForm(),
-                          _buildGameOverButton(
-                            text: 'REINTENTAR',
-                            icon: Icons.restart_alt,
-                            color: Colors.green,
-                            onTap: _restartGame,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildGameOverButton(
-                            text: 'MENÚ',
-                            icon: Icons.home,
-                            color: Colors.blue,
-                            onTap: _exitToMenu,
-                          ),
-                        ],
+                      Flexible(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildScoreForm(),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Expanded(
+                                  child: _buildGameOverButton(
+                                    text: 'REINTENTAR',
+                                    icon: Icons.restart_alt,
+                                    color: Colors.green,
+                                    onTap: _restartGame,
+                                    width: null,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _buildGameOverButton(
+                                    text: 'MENÚ',
+                                    icon: Icons.home,
+                                    color: Colors.blue,
+                                    onTap: _exitToMenu,
+                                    width: null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   )
@@ -801,11 +839,12 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    double? width = 200,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 200, // Ancho fijo para uniformidad
+        width: width, // Ancho configurable
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
         decoration: BoxDecoration(
           color: color.withOpacity(0.2),
@@ -818,12 +857,17 @@ class _RacingGameWidgetState extends State<RacingGameWidget>
           children: [
             Icon(icon, color: color, size: 24),
             const SizedBox(width: 10),
-            Text(
-              text,
-              style: TextStyle(
-                fontFamily: 'PixelifySans',
-                fontSize: 18,
-                color: color,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontFamily: 'PixelifySans',
+                    fontSize: 18,
+                    color: color,
+                  ),
+                ),
               ),
             ),
           ],
